@@ -236,7 +236,7 @@ def send_welcome(message):
     """, reply_markup=markup)
 
 
-@bot.message_handler(func=lambda message: message.text == "Регистрация")
+@bot.message_handler(func=lambda message: "регистрация" in message.text.lower())
 def register_start(message):
     """Начинает процесс регистрации."""
     user_id = message.from_user.id
@@ -252,7 +252,7 @@ def register_start(message):
     bot.register_next_step_handler(message, process_name)
 
 
-@bot.message_handler(func=lambda message: message.text == "Поиск")
+@bot.message_handler(func=lambda message: "поиск" in message.text.lower())
 def search_command(message):
     """Запускает процесс поиска пользователей по полу."""
     user_id = message.from_user.id
@@ -268,7 +268,7 @@ def search_command(message):
     bot.register_next_step_handler(message, process_search_gender)
 
 
-@bot.message_handler(func=lambda message: message.text == "Кто меня лайкнул")
+@bot.message_handler(func=lambda message: "кто меня лайкнул" in message.text.lower())
 def show_likers(message):
     """Показывает пользователей, которые лайкнули данного пользователя."""
     user_id = message.from_user.id
@@ -393,7 +393,7 @@ def show_next_liker(message, user_id):
         del bot.user_data[user_id]  # Очищаем данные
 
 
-@bot.message_handler(func=lambda message: message.text == "Изменить профиль")
+@bot.message_handler(func=lambda message: "изменить профиль" in message.text)
 def edit_profile(message):
     """Начинает процесс изменения профиля."""
     user_id = message.from_user.id
