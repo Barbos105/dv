@@ -222,8 +222,8 @@ def send_welcome(message):
     btn_register = types.KeyboardButton("Регистрация")
     markup.add(btn_register)
     bot.reply_to(message, """
-🤗 Привет! Добро пожаловать в бота для знакомств школы 1518!\n
-Здесь ты сможешь найти себе людей для общения, совместного время препровождения,\n
+🤗 Привет! Добро пожаловать в бота для знакомств школы 1518!
+Здесь ты сможешь найти себе людей для общения, совместного время препровождения,
 а может и нечто большее.. В любом случае желаю удачи! 🤗
     """, reply_markup=markup)
 
@@ -237,9 +237,9 @@ def register_start(message):
         bot.reply_to(message, "Вы уже зарегистрированы.")
         # Как только зарегистрировались - добавляется кнопка поиска и кнопка с лайками
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        btn_search = types.KeyboardButton("Поиск")
-        btn_likes = types.KeyboardButton("Кто меня лайкнул")  # Новая кнопка
-        btn_edit_profile = types.KeyboardButton("Изменить профиль")  # Новая кнопка
+        btn_search = types.KeyboardButton("🔍Поиск🔍")
+        btn_likes = types.KeyboardButton("💘Кто меня лайкнул💘")  # Новая кнопка
+        btn_edit_profile = types.KeyboardButton("👤Изменить профиль👤")  # Новая кнопка
         markup.add(btn_search, btn_likes, btn_edit_profile)
         bot.send_message(message.chat.id, "Теперь вы можете начать поиск", reply_markup=markup)
         return
