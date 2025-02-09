@@ -6,7 +6,7 @@ import time
 from datetime import datetime, timedelta
 
 # Замените 'YOUR_BOT_TOKEN' на токен вашего бота
-BOT_TOKEN = '8183538061:AAHaQmTPa85qlbHkcIuNcygwkOzP8jBgaMs'
+BOT_TOKEN = open('token.txt').readline()
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -214,11 +214,11 @@ def get_liked_by(user_id):
 
 
 def main_buttons_menu():
-        btn_search = types.KeyboardButton("🔍Поиск🔍")
-        btn_likes = types.KeyboardButton("💘Кто меня лайкнул💘")  # Новая кнопка
-        btn_edit_profile = types.KeyboardButton("👤Изменить профиль👤")  # Новая кнопка
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        markup.add(btn_search, btn_likes, btn_edit_profile)
+    btn_search = types.KeyboardButton("🔍Поиск🔍")
+    btn_likes = types.KeyboardButton("💘Кто меня лайкнул💘")  # Новая кнопка
+    btn_edit_profile = types.KeyboardButton("👤Изменить профиль👤")  # Новая кнопка
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    markup.add(btn_search, btn_likes, btn_edit_profile)
     return markup
 
 # --- Обработчики команд ---
@@ -393,7 +393,7 @@ def show_next_liker(message, user_id):
         del bot.user_data[user_id]  # Очищаем данные
 
 
-@bot.message_handler(func=lambda message: "изменить профиль" in message.text)
+@bot.message_handler(func=lambda message: "изменить профиль" in message.text.lower())
 def edit_profile(message):
     """Начинает процесс изменения профиля."""
     user_id = message.from_user.id
