@@ -220,11 +220,11 @@ def send_welcome(message):
     """Приветственное сообщение и инструкция."""
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     btn_register = types.KeyboardButton("Регистрация")
-    markup.add(btn_register)  # Убрана кнопка "Поиск" из главного меню
-
+    markup.add(btn_register)
     bot.reply_to(message, """
-Привет! Я бот для знакомств.
-Нажмите "Регистрация", чтобы зарегистрироваться.
+🤗 Привет! Добро пожаловать в бота для знакомств школы 1518!\n
+Здесь ты сможешь найти себе людей для общения, совместного время препровождения,\n
+а может и нечто большее.. В любом случае желаю удачи! 🤗
     """, reply_markup=markup)
 
 
