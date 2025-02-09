@@ -623,14 +623,11 @@ def show_user(message, user_id):
         btn_back_to_menu = types.InlineKeyboardButton("Назад", callback_data="back_to_menu")  # Кнопка "Назад в меню"
         markup.add(btn_like, btn_dislike, btn_back_to_menu)  # Добавляем кнопку в markup
 
-        username_text = "Скрыто до взаимного мэтча"
-
         sent_message = bot.send_message(message.chat.id, "Нашел вот кого:\n"
                                                          f"Имя: {user['name']}\n"
                                                          f"Возраст: {user['age']}\n"
                                                          f"Интересы: {user['interests']}\n"
-                                                         f"О себе: {user['about_me']}\n"
-                                                         f"Username: {username_text}",
+                                                         f"О себе: {user['about_me']}\n",
                                         reply_markup=markup)
 
         # Сохраняем ID последнего сообщения
