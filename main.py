@@ -213,6 +213,14 @@ def get_liked_by(user_id):
     return liked_by
 
 
+def main_buttons_menu():
+        btn_search = types.KeyboardButton("🔍Поиск🔍")
+        btn_likes = types.KeyboardButton("💘Кто меня лайкнул💘")  # Новая кнопка
+        btn_edit_profile = types.KeyboardButton("👤Изменить профиль👤")  # Новая кнопка
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        markup.add(btn_search, btn_likes, btn_edit_profile)
+    return markup
+
 # --- Обработчики команд ---
 
 @bot.message_handler(commands=['start', 'help'])
@@ -236,11 +244,7 @@ def register_start(message):
     if existing_data:
         bot.reply_to(message, "Вы уже зарегистрированы.")
         # Как только зарегистрировались - добавляется кнопка поиска и кнопка с лайками
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        btn_search = types.KeyboardButton("🔍Поиск🔍")
-        btn_likes = types.KeyboardButton("💘Кто меня лайкнул💘")  # Новая кнопка
-        btn_edit_profile = types.KeyboardButton("👤Изменить профиль👤")  # Новая кнопка
-        markup.add(btn_search, btn_likes, btn_edit_profile)
+        markup = main_buttons_menu()
         bot.send_message(message.chat.id, "Теперь вы можете начать поиск", reply_markup=markup)
         return
 
@@ -519,13 +523,8 @@ def process_edit_about_me(message):
             save_user_data(user_id, name, age, gender, interests, about_me, username)  # Сохраняем в таблицу users
             clear_registration_state(user_id)  # Удаляем промежуточные данные
             # После регистрации добавляем кнопку поиска и кнопку "Кто меня лайкнул"
-            markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-            btn_search = types.KeyboardButton("Поиск")
-            btn_likes = types.KeyboardButton("Кто меня лайкнул")
-            btn_edit_profile = types.KeyboardButton("Изменить профиль")  # Новая кнопка
-            markup.add(btn_search, btn_likes, btn_edit_profile)
-            bot.send_message(message.chat.id, "Ваш профиль успешно обновлен.",
-                             reply_markup=markup)
+            markup = main_buttons_menu()
+            bot.send_message(message.chat.id, "Ваш профиль успешно обновлен.", reply_markup=markup)
 
         else:
             bot.register_next_step_handler(message, process_edit_about_me)
@@ -546,11 +545,7 @@ def go_back_to_main_menu(message):
     existing_data = get_user_data(user_id)
 
     if existing_data:  # Пользователь зарегистрирован
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        btn_search = types.KeyboardButton("Поиск")
-        btn_likes = types.KeyboardButton("Кто меня лайкнул")
-        btn_edit_profile = types.KeyboardButton("Изменить профиль")
-        markup.add(btn_search, btn_likes, btn_edit_profile)
+        markup = main_buttons_menu()
         bot.send_message(message.chat.id, "Возвращаемся в главное меню.", reply_markup=markup)
     else:  # Пользователь не зарегистрирован
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
