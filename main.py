@@ -225,7 +225,7 @@ def main_buttons_menu():
     return markup
 
 
-def search_gender_menu():
+def gender_menu(searching: bool):
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
     types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
     markup.add('Парней', 'Девушек')
@@ -272,7 +272,7 @@ def search_command(message):
         return
 
     # Отправляем клавиатуру с кнопками выбора пола
-    markup = search_gender_menu()
+    markup = gender_menu(True)
     bot.send_message(message.chat.id, "Кого вы ищете?", reply_markup=markup)
     bot.register_next_step_handler(message, process_search_gender)
 
@@ -437,25 +437,16 @@ def process_edit_name(message):
 
 
 def process_edit_age(message):
-    """Сохраняет новый возраст пользователя и переходит к запросу пола."""
     try:
         user_id = message.from_user.id
-        age = message.text
-        if age:
-            age = int(message.text)
-            if age < 10 or age > 18:
-                bot.reply_to(message, "⚠️ Пожалуйста, введите корректный возраст (от 10 до 18)")
-                bot.register_next_step_handler(message, process_edit_age)
-                return
-            markup = search_gender_menu()
-            bot.send_message(message.chat.id, "Какой у вас пол?", reply_markup=markup)
+        age = int(message.text)
+        if 10 <= age <= 18:
+            save_registration_state(user_id, age=age)
             bot.register_next_step_handler(message, process_edit_gender)
-
-            save_registration_state(user_id, age=age)  # Сохраняем возраст в базе данных
         else:
+            bot.reply_to(message, "⚠️ Пожалуйста, введите корректный возраст (от 10 до 18)")
             bot.register_next_step_handler(message, process_edit_age)
-            bot.reply_to(message, "⚠️ Пожалуйста, введите возраст цифрами.")
-
+            return
     except Exception as e:
         print(f"Ошибка в process_edit_age: {e}")
         bot.reply_to(message, "⚠️ Произошла ошибка. Пожалуйста, введите возраст цифрами.")
@@ -473,7 +464,7 @@ def process_edit_gender(message):
         if gender:
             if gender not in ['М', 'Ж']:
                 bot.reply_to(message, "⚠️ Пожалуйста, выберите пол из предложенных вариантов.")
-                markup = search_gender_menu()
+                markup = gender_menu(False)
                 bot.send_message(message.chat.id, "Какой у вас пол?", reply_markup=markup)
                 bot.register_next_step_handler(message, process_edit_gender)
                 return
@@ -812,14 +803,15 @@ def process_age(message):
         if age:
             age = int(message.text)
             if age < 7 or age > 105:
-                bot.reply_to(message, "Пожалуйста, введите корректный возраст (от 7 до 105).")
+                bot.reply_to(message, "⚠️ Пожалуйста, введите корректный возраст (от 7 до 105).")
                 bot.register_next_step_handler(message, process_age)
                 return
-            markup = search_gender_menu()
-            bot.send_message(message.chat.id, "Какой у вас пол?", reply_markup=markup)
-            bot.register_next_step_handler(message, process_gender)
+            else:
+                markup = gender_menu(False)
+                bot.send_message(message.chat.id, "Какой у вас пол?", reply_markup=markup)
+                bot.register_next_step_handler(message, process_gender)
 
-            save_registration_state(user_id, age=age)  # Сохраняем возраст в базе данных
+                save_registration_state(user_id, age=age)  # Сохраняем возраст в базе данных
         else:
             bot.register_next_step_handler(message, process_age)
             bot.reply_to(message, "Пожалуйста, введите возраст цифрами.")
@@ -841,7 +833,7 @@ def process_gender(message):
         if gender:
             if gender not in ['М', 'Ж']:
                 bot.reply_to(message, "Пожалуйста, выберите пол из предложенных вариантов.")
-                markup = search_gender_menu()
+                markup = gender_menu(False)
                 bot.send_message(message.chat.id, "Какой у вас пол?", reply_markup=markup)
                 bot.register_next_step_handler(message, process_gender)
                 return
