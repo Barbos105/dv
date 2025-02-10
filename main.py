@@ -448,7 +448,10 @@ def process_search_gender(message):
             return
 
         user_id = message.from_user.id
-        available_users = get_available_users(user_id, gender)
+        if gender.lower() in ['парней', 'мальчиков']:
+            available_users = get_available_users(user_id, 'М')
+        else:
+            available_users = get_available_users(user_id, 'Ж')
 
         if available_users:
             # Инициализируем список пользователей для текущего пользователя
@@ -671,13 +674,17 @@ def process_gender(message):
         gender = message.text
         if gender is None:
             raise Exception("Gender is empty")
-        if gender.lower().split()[1] not in ['парень', 'девушка', 'мальчик', 'девочка']:
+        parsed_gender = gender.lower().split()[1]
+        if parsed_gender not in ['парень', 'девушка', 'мальчик', 'девочка']:
             # print(gender + '\n' + gender.lower() + '\n' + gender.lower()[2:])
             bot.reply_to(message, "⚠️ Пожалуйста, выберите пол из предложенных вариантов")
             bot.register_next_step_handler(message, process_gender)
             return
         else:
-            save_registration_state(user_id, gender=gender)
+            if parsed_gender in ['парень', 'мальчик']:
+                save_registration_state(user_id, gender='М')
+            else:
+                save_registration_state(user_id, gender='Ж')
             bot.send_message(message.chat.id, "Расскажите о своих интересах (в нескольких словах):")
             bot.register_next_step_handler(message, process_interests)
     except Exception as e:
