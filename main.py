@@ -2,6 +2,7 @@ import telebot
 from telebot import types
 import sqlite3
 import random
+import os
 
 BOT_TOKEN = open('token.txt').readline()
 
@@ -108,22 +109,27 @@ def save_registration_state(user_id, name=None, age=None, gender=None, interests
         cursor.execute("UPDATE registration_states SET gender = ? WHERE user_id = ?", (gender, user_id))
     if interests is not None:
         cursor.execute("UPDATE registration_states SET interests = ? WHERE user_id = ?", (interests, user_id))
+    if about_me is not None:
+        cursor.execute("UPDATE registration_states SET about_me = ? WHERE user_id = ?", (about_me, user_id))
 
     conn.commit()
     conn.close()
+
 
 
 def get_registration_state(user_id):
     """Получает промежуточное состояние регистрации из базы данных."""
     conn = sqlite3.connect(DATABASE_NAME)
     cursor = conn.cursor()
-    cursor.execute("SELECT name, age, gender, interests FROM registration_states WHERE user_id = ?", (user_id,))
+    cursor.execute("SELECT name, age, gender, interests, about_me FROM registration_states WHERE user_id = ?", (user_id,))
     data = cursor.fetchone()
     conn.close()
+    print(data, 2)
     if data:
-        return {'name': data[0], 'age': data[1], 'gender': data[2], 'interests': data[3]}
+        return {'name': data[0], 'age': data[1], 'gender': data[2], 'interests': data[3], 'about_me': data[4]}
     else:
         return {}  # Возвращаем пустой словарь, если нет записи
+
 
 
 def clear_registration_state(user_id):
@@ -221,13 +227,19 @@ def main_buttons_menu():
     return markup
 
 
-def gender_menu(searching: bool):
+def gender_menu(searching: bool, age: int):
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
     types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
     if searching:
-        markup.add('Парней', 'Парней и Девушек', 'Девушек')
+        if age > 12:
+            markup.add('Парней', 'Парней и Девушек', 'Девушек')
+        else:
+            markup.add('Мальчиков', 'Мальчиков и Девочек', 'Девочек')
     else:
-        markup.add('👦 Парень', '👧 Девушка')
+        if age > 12:
+            markup.add('👱‍♂️ Парень', '👱‍♀️ Девушка')
+        else:
+            markup.add('👦 Мальчик', '👧 Девочка')
     return  markup
 
 
@@ -270,7 +282,7 @@ def search_command(message):
         return
 
     # Отправляем клавиатуру с кнопками выбора пола
-    markup = gender_menu(True)
+    markup = gender_menu(searching=True, age=13)
     bot.send_message(message.chat.id, "Кого вы ищете?", reply_markup=markup)
     bot.register_next_step_handler(message, process_search_gender)
 
@@ -430,8 +442,8 @@ def process_search_gender(message):
     """Сохраняет выбранный пол для поиска и начинает показ пользователей."""
     try:
         gender = message.text
-        if gender.lower() not in ['парень', 'девушка', 'мальчик', 'девочка', 'м', 'ж']:
-            bot.reply_to(message, "Пожалуйста, выберите пол из предложенных вариантов.")
+        if gender.lower() not in ['парней', 'парней и девушек', 'девушек', 'мальчиков', 'мальчиков и девочек', 'девочек']:
+            bot.reply_to(message, "⚠️ Пожалуйста, выберите пол из предложенных вариантов")
             bot.register_next_step_handler(message, process_search_gender)  # Повторяем запрос пола
             return
 
@@ -447,25 +459,25 @@ def process_search_gender(message):
                 'last_message_id': None
             }
             markup = types.ReplyKeyboardRemove()
-            bot.send_message(message.chat.id, "Принято, начинаю поиск...", reply_markup=markup)
+            bot.send_message(message.chat.id, "🔍 Принято, начинаю поиск...", reply_markup=markup)
             show_user(message, user_id)
 
         else:
             # Если пользователей не найдено, возвращаемся в главное меню
             bot.send_message(message.chat.id,
-                             "К сожалению, больше пользователей с такими параметрами не найдено. Возвращаемся в главное меню.")
+                             "💔 К сожалению, больше пользователей с такими параметрами не найдено. Возвращаемся в главное меню.")
             go_back_to_main_menu(message)
 
     except Exception as e:
         print(f"Ошибка в process_search_gender: {e}")
-        bot.reply_to(message, 'Произошла ошибка при поиске. Подождите пока в боте появятся люди этого пола')
+        bot.reply_to(message, '💔 Произошла ошибка при поиске. Подождите пока в боте появятся люди этого пола')
 
 
 def show_user(message, user_id):
     """Показывает информацию о пользователе."""
     user_data = bot.user_data.get(user_id)
     if not user_data:
-        bot.send_message(message.chat.id, "Произошла ошибка. Пожалуйста, начните поиск заново.")
+        bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, начните поиск заново.")
         return
 
     users = user_data['users']
@@ -561,7 +573,7 @@ def dislike_callback(call):
         bot.answer_callback_query(call.id, "Удаляем пользователя и ищем следующего...")
         show_next_user(call.message, user_id)  # Показываем следующего
     else:
-        bot.send_message(call.message.chat.id, "Произошла ошибка. Пожалуйста, начните поиск заново.")
+        bot.send_message(call.message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, начните поиск заново.")
 
 
 def show_next_user(message, user_id):
@@ -582,11 +594,11 @@ def show_next_user(message, user_id):
                 bot.user_data[user_id] = user_data  # Обновляем данные пользователя
                 show_user(message, user_id)
             else:
-                bot.send_message(message.chat.id, "К сожалению, больше нет доступных пользователей.")
+                bot.send_message(message.chat.id, "💔 К сожалению, больше нет доступных пользователей.")
                 # Если новых пользователей не нашлось, возвращаемся в главное меню
                 go_back_to_main_menu(message)
     else:
-        bot.send_message(message.chat.id, "Произошла ошибка. Начните поиск заново.")
+        bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Начните поиск заново.")
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('like:'))
@@ -640,7 +652,7 @@ def process_age(message):
         age = int(message.text)
         if 10 <= age <= 18:
             save_registration_state(user_id, age=age)
-            markup = gender_menu(searching=False)
+            markup = gender_menu(searching=False, age=age)
             bot.send_message(message.chat.id, "Укажите ваш пол:", reply_markup=markup)
             bot.register_next_step_handler(message, process_gender)
         else:
@@ -648,7 +660,7 @@ def process_age(message):
             bot.register_next_step_handler(message, process_age)
             return
     except Exception as e:
-        print(f"Ошибка в process_edit_age: {e}")
+        print(f"Ошибка в process_age: {e}")
         bot.reply_to(message, "⚠️ Произошла ошибка. Пожалуйста, введите возраст цифрами.")
         bot.register_next_step_handler(message, process_age)
 
@@ -659,21 +671,20 @@ def process_gender(message):
         gender = message.text
         if gender is None:
             raise Exception("Gender is empty")
-        if gender.lower() not in ['парень', 'девушка', 'мальчик', 'девочка', 'м', 'ж']:
+        if gender.lower().split()[1] not in ['парень', 'девушка', 'мальчик', 'девочка']:
+            # print(gender + '\n' + gender.lower() + '\n' + gender.lower()[2:])
             bot.reply_to(message, "⚠️ Пожалуйста, выберите пол из предложенных вариантов")
             bot.register_next_step_handler(message, process_gender)
             return
         else:
-
             save_registration_state(user_id, gender=gender)
-
             bot.send_message(message.chat.id, "Расскажите о своих интересах (в нескольких словах):")
             bot.register_next_step_handler(message, process_interests)
     except Exception as e:
         print(f"Ошибка в process_gender: {e}")
         bot.register_next_step_handler(message, process_gender)
 
-        bot.reply_to(message, 'Произошла ошибка. Пожалуйста, нажмите на одну из кнопок')
+        bot.reply_to(message, '⚠️ Произошла ошибка. Пожалуйста, нажмите на одну из кнопок')
 
 
 def process_interests(message):
@@ -689,12 +700,12 @@ def process_interests(message):
         else:
             bot.register_next_step_handler(message, process_interests)
 
-            bot.reply_to(message, 'Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
+            bot.reply_to(message, '⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
     except Exception as e:
         print(f"Ошибка в process_interests: {e}")
         bot.register_next_step_handler(message, process_interests)
 
-        bot.reply_to(message, 'Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
+        bot.reply_to(message, '⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
 
 
 def process_about_me(message):
@@ -710,11 +721,11 @@ def process_about_me(message):
 
         else:
             bot.register_next_step_handler(message, process_about_me)
-            bot.reply_to(message, 'Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
+            bot.reply_to(message, '⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
     except Exception as e:
         print(f"Ошибка в process_about_me: {e}")
         bot.register_next_step_handler(message, process_about_me)
-        bot.reply_to(message, 'Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
+        bot.reply_to(message, '⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
 
 
 def process_photo(message):
@@ -724,6 +735,9 @@ def process_photo(message):
         photo = message.photo[-1].file_id
         file_info = bot.get_file(photo)
         downloaded_file = bot.download_file(file_info.file_path)
+        if not os.path.exists('images'):
+            os.mkdir('images')
+
         with open(f"images/image{user_id}.jpg", 'wb') as new_file:
             new_file.write(downloaded_file)
         if photo:
@@ -737,21 +751,31 @@ def process_photo(message):
             # Получаем username пользователя
             username = message.from_user.username
 
-            save_user_data(user_id, name, age, gender, interests, about_me, username)  # Сохраняем в таблицу users
+            save_user_data(user_id, name, age, gender, interests, about_me, downloaded_file, username)  # Сохраняем в таблицу users
             clear_registration_state(user_id)  # Удаляем промежуточные данные
             # После регистрации добавляем кнопку поиска и кнопку "Кто меня лайкнул"
             markup = main_buttons_menu()
             bot.send_message(message.chat.id, "Спасибо за регистрацию! Теперь вы можете начать поиск",
                              reply_markup=markup)
+            photo = open(f'images/image{user_id}.jpg', 'rb')
+            bot.send_photo(message.chat.id, photo, reply_markup=markup)
+            bot.send_message(message.chat.id, f"Ваша анкета: \n"
+                                              f"Имя: {name},\n"
+                                              f"Возраст: {age}, \n"
+                                              f"Пол: {gender},\n "
+                                              f"Интересы: {interests},\n "
+                                              f"О себе: {about_me}",
+                             reply_markup=markup)
         else:
             bot.register_next_step_handler(message, process_photo)
 
-            bot.reply_to(message, 'Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
+            bot.reply_to(message, '⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
     except Exception as e:
-        print(f"Ошибка в process_interests: {e}")
+        print(f"Ошибка в process_photo: {e}")
         bot.register_next_step_handler(message, process_photo)
 
-        bot.reply_to(message, 'Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
+        bot.reply_to(message, '⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
+
 
 
 
