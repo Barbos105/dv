@@ -27,6 +27,7 @@ def create_table():
         gender TEXT,
         interests TEXT,
         about_me TEXT,
+        photo BLOB,
         username TEXT  -- Новое поле для username
     )
     """)
@@ -39,6 +40,7 @@ def create_table():
         age TEXT,
         gender TEXT,
         interests TEXT,
+        photo BLOB,
         FOREIGN KEY (user_id) REFERENCES users(user_id)
     )
     """)
@@ -71,13 +73,13 @@ def create_table():
     conn.close()
 
 
-def save_user_data(user_id, name, age, gender, interests, about_me, username=None):
+def save_user_data(user_id, name, age, gender, interests, about_me, photo, username=None):
     """Сохраняет данные пользователя в базу данных."""
     conn = sqlite3.connect(DATABASE_NAME)
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT OR REPLACE INTO users (user_id, name, age, gender, interests, about_me, username) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (user_id, name, age, gender, interests, about_me, username))
+        "INSERT OR REPLACE INTO users (user_id, name, age, gender, interests, about_me, photo, username) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (user_id, name, age, gender, interests, about_me, photo, username))
     conn.commit()
     conn.close()
 
@@ -86,8 +88,9 @@ def get_user_data(user_id):
     """Получает данные пользователя из базы данных."""
     conn = sqlite3.connect(DATABASE_NAME)
     cursor = conn.cursor()
-    cursor.execute("SELECT name, age, gender, interests, about_me, username FROM users WHERE user_id = ?", (user_id,))
+    cursor.execute("SELECT name, age, gender, interests, about_me, photo, username FROM users WHERE user_id = ?", (user_id,))
     data = cursor.fetchone()
+    print(data)
     conn.close()
     if data:
         return {'name': data[0], 'age': data[1], 'gender': data[2], 'interests': data[3], 'about_me': data[4],
@@ -96,7 +99,7 @@ def get_user_data(user_id):
         return None
 
 
-def save_registration_state(user_id, name=None, age=None, gender=None, interests=None):
+def save_registration_state(user_id, name=None, age=None, gender=None, interests=None, about_me=None):
     """Сохраняет промежуточное состояние регистрации в базу данных."""
     conn = sqlite3.connect(DATABASE_NAME)
     cursor = conn.cursor()
@@ -506,16 +509,41 @@ def process_edit_interests(message):
 
 
 def process_edit_about_me(message):
-    """Сохраняет новое 'о себе' пользователя и завершает изменение профиля."""
+    """Сохраняет 'о себе' пользователя и завершает регистрацию."""
     try:
         user_id = message.from_user.id
         about_me = message.text
         if about_me:
+            save_registration_state(user_id, about_me=about_me)
+
+            bot.send_message(message.chat.id, "Ваше фото:")
+            bot.register_next_step_handler(message, process_edit_photo)
+
+        else:
+            bot.register_next_step_handler(message, process_edit_about_me)
+            bot.reply_to(message, 'Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
+    except Exception as e:
+        print(f"Ошибка в process_edit_about_me: {e}")
+        bot.register_next_step_handler(message, process_edit_about_me)
+        bot.reply_to(message, 'Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
+
+
+def process_edit_photo(message):
+    """Сохраняет интересы пользователя и переходит к запросу 'о себе'."""
+    try:
+        user_id = message.from_user.id
+        photo = message.photo[-1].file_id
+        file_info = bot.get_file(photo)
+        downloaded_file = bot.download_file(file_info.file_path)
+        with open(f"images/image{user_id}.jpg", 'wb') as new_file:
+            new_file.write(downloaded_file)
+        if photo:
             registration_state = get_registration_state(user_id)
             name = registration_state.get('name')
             age = registration_state.get('age')
             gender = registration_state.get('gender')
             interests = registration_state.get('interests')
+            about_me = registration_state.get('about_me')
 
             # Получаем username пользователя
             username = message.from_user.username
@@ -523,18 +551,23 @@ def process_edit_about_me(message):
             save_user_data(user_id, name, age, gender, interests, about_me, username)  # Сохраняем в таблицу users
             clear_registration_state(user_id)  # Удаляем промежуточные данные
             # После регистрации добавляем кнопку поиска и кнопку "Кто меня лайкнул"
-            markup = main_buttons_menu()
-            bot.send_message(message.chat.id, "Ваш профиль успешно обновлен.", reply_markup=markup)
-
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+            btn_search = types.KeyboardButton("🔍Поиск🔍")
+            btn_likes = types.KeyboardButton("💘Кто меня лайкнул💘")
+            btn_edit_profile = types.KeyboardButton("👤Изменить профиль👤")  # Новая кнопка
+            markup.add(btn_search, btn_likes, btn_edit_profile)
+            bot.send_message(message.chat.id, "Спасибо за регистрацию! Теперь вы можете начать поиск",
+                             reply_markup=markup)
         else:
-            bot.register_next_step_handler(message, process_edit_about_me)
+            bot.register_next_step_handler(message, process_edit_photo)
+
             bot.reply_to(message, 'Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
-
     except Exception as e:
-        print(f"Ошибка в process_edit_about_me: {e}")
-        bot.reply_to(message, 'Произошла ошибка. Пожалуйста, попробуйте еще раз рассказать о себе')
+        print(f"Ошибка в process_edit_photo: {e}")
+        bot.register_next_step_handler(message, process_edit_photo)
 
-        bot.register_next_step_handler(message, process_edit_about_me)
+        bot.reply_to(message, 'Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
+
 
 
 # --- Остальные функции и обработчики ---
@@ -652,9 +685,9 @@ def back_to_menu_callback(call):
 
     if existing_data:  # Пользователь зарегистрирован
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        btn_search = types.KeyboardButton("Поиск")
-        btn_likes = types.KeyboardButton("Кто меня лайкнул")
-        btn_edit_profile = types.KeyboardButton("Изменить профиль")  # Новая кнопка
+        btn_search = types.KeyboardButton("🔍Поиск🔍")
+        btn_likes = types.KeyboardButton("💘Кто меня лайкнул💘")
+        btn_edit_profile = types.KeyboardButton("👤Изменить профиль👤")  # Новая кнопка
         markup.add(btn_search, btn_likes, btn_edit_profile)
         bot.send_message(call.message.chat.id, "Что дальше?", reply_markup=markup)  # Отправляем сообщение с клавиатурой
     else:  # Пользователь не зарегистрирован (логически это вряд ли произойдет, но лучше обработать)
@@ -863,25 +896,10 @@ def process_about_me(message):
         user_id = message.from_user.id
         about_me = message.text
         if about_me:
-            registration_state = get_registration_state(user_id)
-            name = registration_state.get('name')
-            age = registration_state.get('age')
-            gender = registration_state.get('gender')
-            interests = registration_state.get('interests')
+            save_registration_state(user_id, about_me=about_me)
 
-            # Получаем username пользователя
-            username = message.from_user.username
-
-            save_user_data(user_id, name, age, gender, interests, about_me, username)  # Сохраняем в таблицу users
-            clear_registration_state(user_id)  # Удаляем промежуточные данные
-            # После регистрации добавляем кнопку поиска и кнопку "Кто меня лайкнул"
-            markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-            btn_search = types.KeyboardButton("Поиск")
-            btn_likes = types.KeyboardButton("Кто меня лайкнул")
-            btn_edit_profile = types.KeyboardButton("Изменить профиль")  # Новая кнопка
-            markup.add(btn_search, btn_likes, btn_edit_profile)
-            bot.send_message(message.chat.id, "Спасибо за регистрацию! Теперь вы можете начать поиск",
-                             reply_markup=markup)
+            bot.send_message(message.chat.id, "Ваше фото:")
+            bot.register_next_step_handler(message, process_photo)
 
         else:
             bot.register_next_step_handler(message, process_about_me)
@@ -890,6 +908,48 @@ def process_about_me(message):
         print(f"Ошибка в process_about_me: {e}")
         bot.register_next_step_handler(message, process_about_me)
         bot.reply_to(message, 'Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
+
+
+def process_photo(message):
+    """Сохраняет интересы пользователя и переходит к запросу 'о себе'."""
+    try:
+        user_id = message.from_user.id
+        photo = message.photo[-1].file_id
+        file_info = bot.get_file(photo)
+        downloaded_file = bot.download_file(file_info.file_path)
+        with open(f"images/image{user_id}.jpg", 'wb') as new_file:
+            new_file.write(downloaded_file)
+        if photo:
+            registration_state = get_registration_state(user_id)
+            name = registration_state.get('name')
+            age = registration_state.get('age')
+            gender = registration_state.get('gender')
+            interests = registration_state.get('interests')
+            about_me = registration_state.get('about_me')
+
+            # Получаем username пользователя
+            username = message.from_user.username
+
+            save_user_data(user_id, name, age, gender, interests, about_me, username)  # Сохраняем в таблицу users
+            clear_registration_state(user_id)  # Удаляем промежуточные данные
+            # После регистрации добавляем кнопку поиска и кнопку "Кто меня лайкнул"
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+            btn_search = types.KeyboardButton("🔍Поиск🔍")
+            btn_likes = types.KeyboardButton("💘Кто меня лайкнул💘")
+            btn_edit_profile = types.KeyboardButton("👤Изменить профиль👤")  # Новая кнопка
+            markup.add(btn_search, btn_likes, btn_edit_profile)
+            bot.send_message(message.chat.id, "Спасибо за регистрацию! Теперь вы можете начать поиск",
+                             reply_markup=markup)
+        else:
+            bot.register_next_step_handler(message, process_photo)
+
+            bot.reply_to(message, 'Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
+    except Exception as e:
+        print(f"Ошибка в process_interests: {e}")
+        bot.register_next_step_handler(message, process_photo)
+
+        bot.reply_to(message, 'Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
+
 
 
 # --- Запуск бота ---
