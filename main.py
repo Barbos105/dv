@@ -260,6 +260,7 @@ def register_start(message):
         markup = main_buttons_menu()
         bot.send_message(message.chat.id, "Теперь вы можете начать поиск", reply_markup=markup)
         return
+    bot.send_message(message.chat.id, "Пожалуйста, введите ваше имя:")
     bot.register_next_step_handler(message, process_name)
 
 
@@ -623,13 +624,13 @@ def like_callback(call):
 # --- Обработчики шагов регистрации ---
 
 def process_name(message):
-    bot.send_message(message.chat.id, "Пожалуйста, введите ваше имя:")
     try:
         user_id = message.from_user.id
         name = message.text
         if name is None:
             raise Exception("Name is empty")
         save_registration_state(user_id, name=name)  # Сохраняем имя в базе данных
+        bot.send_message(message.chat.id, "Сколько вам лет?")
         bot.register_next_step_handler(message, process_age)
     except Exception as e:
         print(f"Ошибка в process_name: {e}")
@@ -638,13 +639,14 @@ def process_name(message):
 
 
 def process_age(message):
-    bot.send_message(message.chat.id, "Сколько вам лет?")
     try:
         user_id = message.from_user.id
         age = int(message.text)
         if 10 <= age <= 18:
             save_registration_state(user_id, age=age)
-            bot.register_next_step_handler(message, process_age)
+            markup = gender_menu(searching=False)
+            bot.send_message(message.chat.id, "Укажите ваш пол:", reply_markup=markup)
+            bot.register_next_step_handler(message, process_gender)
         else:
             bot.reply_to(message, "⚠️ К сожалению вы не можете пользоваться нашим ботом 😔 По нашим правилам пользоваться нашим ботом можно только от 10 до 18 лет")
             bot.register_next_step_handler(message, process_age)
@@ -656,8 +658,6 @@ def process_age(message):
 
 
 def process_gender(message):
-    markup = gender_menu(searching=False)
-    bot.send_message(message.chat.id, "Укажите ваш пол:", reply_markup=markup)
     try:
         user_id = message.from_user.id
         gender = message.text
