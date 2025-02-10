@@ -2,16 +2,12 @@ import telebot
 from telebot import types
 import sqlite3
 import random
-import time
-from datetime import datetime, timedelta
 
-# Замените 'YOUR_BOT_TOKEN' на токен вашего бота
 BOT_TOKEN = open('token.txt').readline()
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# --- Работа с базой данных SQLite ---
-DATABASE_NAME = 'registration_data.db'  # Имя файла базы данных
+DATABASE_NAME = 'registration_data.db'
 
 
 def create_table():
@@ -434,7 +430,7 @@ def process_search_gender(message):
     """Сохраняет выбранный пол для поиска и начинает показ пользователей."""
     try:
         gender = message.text
-        if gender not in ['М', 'Ж']:
+        if gender.lower() not in ['парень', 'девушка', 'мальчик', 'девочка', 'м', 'ж']:
             bot.reply_to(message, "Пожалуйста, выберите пол из предложенных вариантов.")
             bot.register_next_step_handler(message, process_search_gender)  # Повторяем запрос пола
             return
@@ -663,7 +659,7 @@ def process_gender(message):
         gender = message.text
         if gender is None:
             raise Exception("Gender is empty")
-        if gender.lower not in ['парень', 'девушка', 'мальчик', 'девочка', 'м', 'ж']:
+        if gender.lower() not in ['парень', 'девушка', 'мальчик', 'девочка', 'м', 'ж']:
             bot.reply_to(message, "⚠️ Пожалуйста, выберите пол из предложенных вариантов")
             bot.register_next_step_handler(message, process_gender)
             return
