@@ -228,7 +228,7 @@ def main_buttons_menu():
 def search_gender_menu():
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
     types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
-    markup.add('М', 'Ж')
+    markup.add('Парней', 'Девушек')
     return  markup
 
 
@@ -254,7 +254,6 @@ def register_start(message):
     existing_data = get_user_data(user_id)
     if existing_data:
         bot.reply_to(message, "Вы уже зарегистрированы.")
-        # Как только зарегистрировались - добавляется кнопка поиска и кнопка с лайками
         markup = main_buttons_menu()
         bot.send_message(message.chat.id, "Теперь вы можете начать поиск", reply_markup=markup)
         return
@@ -299,7 +298,7 @@ def show_liker_profile(message, user_id):
     """Показывает профиль лайкнувшего пользователя с кнопками Лайк и Дизлайк."""
     user_data = bot.user_data.get(user_id)
     if not user_data or 'likers' not in user_data:
-        bot.send_message(message.chat.id, "Произошла ошибка. Пожалуйста, попробуйте еще раз.")
+        bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз.")
         return
 
     likers = user_data['likers']
@@ -317,10 +316,11 @@ def show_liker_profile(message, user_id):
 
             # Показываем профиль лайкнувшего
             bot.send_message(message.chat.id,
-                             f"Пользователь {liker_data['name']} (Возраст: {liker_data['age']}) лайкнул вас.\n"
-                             f"Интересы: {liker_data['interests']}\n"
-                             f"О себе: {liker_data['about_me']}",
+                             f"Вы понравились:\n\n"
+                             f"**{liker_data['name']}**, {liker_data['age']} лет. Интересы: {liker_data['interests']}\n"
+                             f"{liker_data['about_me']}",
                              reply_markup=markup)
+
         else:
             bot.send_message(message.chat.id, "Данные пользователя недоступны.")
     else:
@@ -352,7 +352,7 @@ def like_liker_callback(call):
 
     except Exception as e:
         print(f"Ошибка в like_liker_callback: {e}")
-        bot.send_message(call.message.chat.id, "Произошла ошибка. Пожалуйста, попробуйте еще раз.")
+        bot.send_message(call.message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз.")
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('dislike_liker:'))
@@ -373,7 +373,7 @@ def dislike_liker_callback(call):
 
     except Exception as e:
         print(f"Ошибка в dislike_liker_callback: {e}")
-        bot.send_message(call.message.chat.id, "Произошла ошибка. Пожалуйста, попробуйте еще раз.")
+        bot.send_message(call.message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз.")
 
 
 def remove_like(liker_id, likee_id):
@@ -389,7 +389,7 @@ def show_next_liker(message, user_id):
     """Переходит к следующему лайкнувшему пользователю."""
     user_data = bot.user_data.get(user_id)
     if not user_data or 'likers' not in user_data:
-        bot.send_message(message.chat.id, "Произошла ошибка. Пожалуйста, попробуйте еще раз.")
+        bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз.")
         return
 
     likers = user_data['likers']
@@ -429,10 +429,10 @@ def process_edit_name(message):
         else:
             bot.register_next_step_handler(message, process_edit_name)
 
-            bot.reply_to(message, 'Произошла ошибка. Пожалуйста, попробуйте еще раз ввести имя')
+            bot.reply_to(message, '⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз ввести имя')
     except Exception as e:
         print(f"Ошибка в process_edit_name: {e}")
-        bot.reply_to(message, "Произошла ошибка. Пожалуйста, введите имя.")
+        bot.reply_to(message, "⚠️ Произошла ошибка. Пожалуйста, введите имя.")
         bot.register_next_step_handler(message, process_edit_name)
 
 
@@ -443,8 +443,8 @@ def process_edit_age(message):
         age = message.text
         if age:
             age = int(message.text)
-            if age < 7 or age > 105:
-                bot.reply_to(message, "Пожалуйста, введите корректный возраст (от 7 до 105).")
+            if age < 10 or age > 18:
+                bot.reply_to(message, "⚠️ Пожалуйста, введите корректный возраст (от 10 до 18)")
                 bot.register_next_step_handler(message, process_edit_age)
                 return
             markup = search_gender_menu()
@@ -454,11 +454,11 @@ def process_edit_age(message):
             save_registration_state(user_id, age=age)  # Сохраняем возраст в базе данных
         else:
             bot.register_next_step_handler(message, process_edit_age)
-            bot.reply_to(message, "Пожалуйста, введите возраст цифрами.")
+            bot.reply_to(message, "⚠️ Пожалуйста, введите возраст цифрами.")
 
     except Exception as e:
         print(f"Ошибка в process_edit_age: {e}")
-        bot.reply_to(message, "Произошла ошибка. Пожалуйста, введите возраст цифрами.")
+        bot.reply_to(message, "⚠️ Произошла ошибка. Пожалуйста, введите возраст цифрами.")
         bot.register_next_step_handler(message, process_edit_age)
 
 
@@ -472,7 +472,7 @@ def process_edit_gender(message):
 
         if gender:
             if gender not in ['М', 'Ж']:
-                bot.reply_to(message, "Пожалуйста, выберите пол из предложенных вариантов.")
+                bot.reply_to(message, "⚠️ Пожалуйста, выберите пол из предложенных вариантов.")
                 markup = search_gender_menu()
                 bot.send_message(message.chat.id, "Какой у вас пол?", reply_markup=markup)
                 bot.register_next_step_handler(message, process_edit_gender)
@@ -486,10 +486,10 @@ def process_edit_gender(message):
         else:
             bot.register_next_step_handler(message, process_edit_gender)
 
-            bot.reply_to(message, 'Произошла ошибка. Пожалуйста, нажмите на одну из кнопок')
+            bot.reply_to(message, '⚠️ Произошла ошибка. Пожалуйста, нажмите на одну из кнопок')
     except Exception as e:
         print(f"Ошибка в process_edit_gender: {e}")
-        bot.reply_to(message, "Произошла ошибка. Пожалуйста, нажмите на одну из кнопок")
+        bot.reply_to(message, "⚠️ Произошла ошибка. Пожалуйста, нажмите на одну из кнопок")
         bot.register_next_step_handler(message, process_edit_gender)
 
 
@@ -506,10 +506,10 @@ def process_edit_interests(message):
         else:
             bot.register_next_step_handler(message, process_edit_interests)
 
-            bot.reply_to(message, 'Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
+            bot.reply_to(message, '⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
     except Exception as e:
         print(f"Ошибка в process_edit_interests: {e}")
-        bot.reply_to(message, "Произошла ошибка. Пожалуйста, введите свои интересы еще раз.")
+        bot.reply_to(message, "⚠️ Произошла ошибка. Пожалуйста, введите свои интересы еще раз.")
         bot.register_next_step_handler(message, process_edit_interests)
 
 
@@ -526,11 +526,11 @@ def process_edit_about_me(message):
 
         else:
             bot.register_next_step_handler(message, process_edit_about_me)
-            bot.reply_to(message, 'Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
+            bot.reply_to(message, '⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
     except Exception as e:
         print(f"Ошибка в process_edit_about_me: {e}")
         bot.register_next_step_handler(message, process_edit_about_me)
-        bot.reply_to(message, 'Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
+        bot.reply_to(message, '⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
 
 
 def process_edit_photo(message):
@@ -562,12 +562,12 @@ def process_edit_photo(message):
         else:
             bot.register_next_step_handler(message, process_edit_photo)
 
-            bot.reply_to(message, 'Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
+            bot.reply_to(message, '⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
     except Exception as e:
         print(f"Ошибка в process_edit_photo: {e}")
         bot.register_next_step_handler(message, process_edit_photo)
 
-        bot.reply_to(message, 'Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
+        bot.reply_to(message, '⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
 
 
 
@@ -652,11 +652,9 @@ def show_user(message, user_id):
         btn_back_to_menu = types.InlineKeyboardButton("Назад", callback_data="back_to_menu")  # Кнопка "Назад в меню"
         markup.add(btn_like, btn_dislike, btn_back_to_menu)  # Добавляем кнопку в markup
 
-        sent_message = bot.send_message(message.chat.id, "Нашел вот кого:\n"
-                                                         f"Имя: {user['name']}\n"
-                                                         f"Возраст: {user['age']}\n"
-                                                         f"Интересы: {user['interests']}\n"
-                                                         f"О себе: {user['about_me']}\n",
+        sent_message = bot.send_message(message.chat.id, "Нашел вот кого:\n\n"
+                                                         f"**{user['name']}**, {user['age']} лет. Интересы: {user['interests']}\n."
+                                                         f"{user['about_me']}",
                                         reply_markup=markup)
 
         # Сохраняем ID последнего сообщения
