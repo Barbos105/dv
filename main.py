@@ -228,7 +228,10 @@ def main_buttons_menu():
 def gender_menu(searching: bool):
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
     types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
-    markup.add('Парней', 'Девушек')
+    if searching:
+        markup.add('Парней', 'Парней и Девушек', 'Девушек')
+    else:
+        markup.add('👦 Парень', '👧 Девушка')
     return  markup
 
 
@@ -257,8 +260,6 @@ def register_start(message):
         markup = main_buttons_menu()
         bot.send_message(message.chat.id, "Теперь вы можете начать поиск", reply_markup=markup)
         return
-
-    bot.send_message(message.chat.id, "Пожалуйста, введите ваше имя:")
     bot.register_next_step_handler(message, process_name)
 
 
@@ -405,174 +406,23 @@ def show_next_liker(message, user_id):
 
 @bot.message_handler(func=lambda message: "изменить профиль" in message.text.lower())
 def edit_profile(message):
-    """Начинает процесс изменения профиля."""
     user_id = message.from_user.id
     existing_data = get_user_data(user_id)
     if not existing_data:
         bot.reply_to(message, "Пожалуйста, сначала зарегистрируйтесь.")
         return
-
-    bot.send_message(message.chat.id, "Введите новое имя:")
-    bot.register_next_step_handler(message, process_edit_name)
-
-
-def process_edit_name(message):
-
-    """Сохраняет новое имя пользователя и переходит к запросу возраста."""
-    try:
-        user_id = message.from_user.id
-        name = message.text
-        if name:
-            save_registration_state(user_id, name=name)  # Сохраняем имя в базе данных
-            bot.send_message(message.chat.id, "Спасибо! Теперь введите ваш возраст:")
-            bot.register_next_step_handler(message, process_edit_age)
-        else:
-            bot.register_next_step_handler(message, process_edit_name)
-
-            bot.reply_to(message, '⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз ввести имя')
-    except Exception as e:
-        print(f"Ошибка в process_edit_name: {e}")
-        bot.reply_to(message, "⚠️ Произошла ошибка. Пожалуйста, введите имя.")
-        bot.register_next_step_handler(message, process_edit_name)
-
-
-def process_edit_age(message):
-    try:
-        user_id = message.from_user.id
-        age = int(message.text)
-        if 10 <= age <= 18:
-            save_registration_state(user_id, age=age)
-            bot.register_next_step_handler(message, process_edit_gender)
-        else:
-            bot.reply_to(message, "⚠️ Пожалуйста, введите корректный возраст (от 10 до 18)")
-            bot.register_next_step_handler(message, process_edit_age)
-            return
-    except Exception as e:
-        print(f"Ошибка в process_edit_age: {e}")
-        bot.reply_to(message, "⚠️ Произошла ошибка. Пожалуйста, введите возраст цифрами.")
-        bot.register_next_step_handler(message, process_edit_age)
-
-
-def process_edit_gender(message):
-    """Сохраняет новый пол пользователя и переходит к запросу интересов."""
-    try:
-        user_id = message.from_user.id
-        gender = message.text
-
-        # Проверка на допустимые варианты пола
-
-        if gender:
-            if gender not in ['М', 'Ж']:
-                bot.reply_to(message, "⚠️ Пожалуйста, выберите пол из предложенных вариантов.")
-                markup = gender_menu(False)
-                bot.send_message(message.chat.id, "Какой у вас пол?", reply_markup=markup)
-                bot.register_next_step_handler(message, process_edit_gender)
-                return
-            else:
-
-                save_registration_state(user_id, gender=gender)
-
-                bot.send_message(message.chat.id, "Расскажите о своих интересах (в нескольких словах):")
-                bot.register_next_step_handler(message, process_edit_interests)
-        else:
-            bot.register_next_step_handler(message, process_edit_gender)
-
-            bot.reply_to(message, '⚠️ Произошла ошибка. Пожалуйста, нажмите на одну из кнопок')
-    except Exception as e:
-        print(f"Ошибка в process_edit_gender: {e}")
-        bot.reply_to(message, "⚠️ Произошла ошибка. Пожалуйста, нажмите на одну из кнопок")
-        bot.register_next_step_handler(message, process_edit_gender)
-
-
-def process_edit_interests(message):
-    """Сохраняет новые интересы пользователя и переходит к запросу 'о себе'."""
-    try:
-        user_id = message.from_user.id
-        interests = message.text
-        if interests:
-            save_registration_state(user_id, interests=interests)
-
-            bot.send_message(message.chat.id, "Напишите немного о себе:")
-            bot.register_next_step_handler(message, process_edit_about_me)
-        else:
-            bot.register_next_step_handler(message, process_edit_interests)
-
-            bot.reply_to(message, '⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
-    except Exception as e:
-        print(f"Ошибка в process_edit_interests: {e}")
-        bot.reply_to(message, "⚠️ Произошла ошибка. Пожалуйста, введите свои интересы еще раз.")
-        bot.register_next_step_handler(message, process_edit_interests)
-
-
-def process_edit_about_me(message):
-    """Сохраняет 'о себе' пользователя и завершает регистрацию."""
-    try:
-        user_id = message.from_user.id
-        about_me = message.text
-        if about_me:
-            save_registration_state(user_id, about_me=about_me)
-
-            bot.send_message(message.chat.id, "Ваше фото:")
-            bot.register_next_step_handler(message, process_edit_photo)
-
-        else:
-            bot.register_next_step_handler(message, process_edit_about_me)
-            bot.reply_to(message, '⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
-    except Exception as e:
-        print(f"Ошибка в process_edit_about_me: {e}")
-        bot.register_next_step_handler(message, process_edit_about_me)
-        bot.reply_to(message, '⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
-
-
-def process_edit_photo(message):
-    """Сохраняет интересы пользователя и переходит к запросу 'о себе'."""
-    try:
-        user_id = message.from_user.id
-        photo = message.photo[-1].file_id
-        file_info = bot.get_file(photo)
-        downloaded_file = bot.download_file(file_info.file_path)
-        with open(f"images/image{user_id}.jpg", 'wb') as new_file:
-            new_file.write(downloaded_file)
-        if photo:
-            registration_state = get_registration_state(user_id)
-            name = registration_state.get('name')
-            age = registration_state.get('age')
-            gender = registration_state.get('gender')
-            interests = registration_state.get('interests')
-            about_me = registration_state.get('about_me')
-
-            # Получаем username пользователя
-            username = message.from_user.username
-
-            save_user_data(user_id, name, age, gender, interests, about_me, username)  # Сохраняем в таблицу users
-            clear_registration_state(user_id)  # Удаляем промежуточные данные
-            # После регистрации добавляем кнопку поиска и кнопку "Кто меня лайкнул"
-            markup = main_buttons_menu()
-            bot.send_message(message.chat.id, "Спасибо за регистрацию! Теперь вы можете начать поиск",
-                             reply_markup=markup)
-        else:
-            bot.register_next_step_handler(message, process_edit_photo)
-
-            bot.reply_to(message, '⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
-    except Exception as e:
-        print(f"Ошибка в process_edit_photo: {e}")
-        bot.register_next_step_handler(message, process_edit_photo)
-
-        bot.reply_to(message, '⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
-
-
+    bot.register_next_step_handler(message, process_name)
 
 # --- Остальные функции и обработчики ---
 
 def go_back_to_main_menu(message):
-    """Возвращает пользователя в главное меню."""
     user_id = message.from_user.id
     existing_data = get_user_data(user_id)
 
-    if existing_data:  # Пользователь зарегистрирован
+    if existing_data:
         markup = main_buttons_menu()
         bot.send_message(message.chat.id, "Возвращаемся в главное меню.", reply_markup=markup)
-    else:  # Пользователь не зарегистрирован
+    else:
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         btn_register = types.KeyboardButton("Регистрация")
         markup.add(btn_register)
@@ -597,10 +447,8 @@ def process_search_gender(message):
                 'gender': gender,
                 'users': available_users,
                 'current_index': 0,
-                'last_message_id': None  # Добавляем поле для хранения ID последнего сообщения
+                'last_message_id': None
             }
-
-            # Убираем клавиатуру с кнопками выбора пола
             markup = types.ReplyKeyboardRemove()
             bot.send_message(message.chat.id, "Принято, начинаю поиск...", reply_markup=markup)
             show_user(message, user_id)
@@ -609,7 +457,7 @@ def process_search_gender(message):
             # Если пользователей не найдено, возвращаемся в главное меню
             bot.send_message(message.chat.id,
                              "К сожалению, больше пользователей с такими параметрами не найдено. Возвращаемся в главное меню.")
-            go_back_to_main_menu(message)  # Используем функцию для возврата в главное меню
+            go_back_to_main_menu(message)
 
     except Exception as e:
         print(f"Ошибка в process_search_gender: {e}")
@@ -775,78 +623,56 @@ def like_callback(call):
 # --- Обработчики шагов регистрации ---
 
 def process_name(message):
-    """Сохраняет имя пользователя и переходит к запросу возраста."""
+    bot.send_message(message.chat.id, "Пожалуйста, введите ваше имя:")
     try:
         user_id = message.from_user.id
         name = message.text
-        if name:
-            save_registration_state(user_id, name=name)  # Сохраняем имя в базе данных
-            bot.send_message(message.chat.id, "Спасибо! Теперь введите ваш возраст:")
-            bot.register_next_step_handler(message, process_age)
-        else:
-            bot.register_next_step_handler(message, process_name)
-
-            bot.reply_to(message, 'Произошла ошибка. Пожалуйста, попробуйте еще раз ввести имя')
-
+        if name is None:
+            raise Exception("Name is empty")
+        save_registration_state(user_id, name=name)  # Сохраняем имя в базе данных
+        bot.register_next_step_handler(message, process_age)
     except Exception as e:
         print(f"Ошибка в process_name: {e}")
         bot.register_next_step_handler(message, process_name)
-
-        bot.reply_to(message, 'Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
+        bot.reply_to(message, '️⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
 
 
 def process_age(message):
-    """Сохраняет возраст пользователя и переходит к запросу пола."""
+    bot.send_message(message.chat.id, "Сколько вам лет?")
     try:
         user_id = message.from_user.id
-        age = message.text
-        if age:
-            age = int(message.text)
-            if age < 7 or age > 105:
-                bot.reply_to(message, "⚠️ Пожалуйста, введите корректный возраст (от 7 до 105).")
-                bot.register_next_step_handler(message, process_age)
-                return
-            else:
-                markup = gender_menu(False)
-                bot.send_message(message.chat.id, "Какой у вас пол?", reply_markup=markup)
-                bot.register_next_step_handler(message, process_gender)
-
-                save_registration_state(user_id, age=age)  # Сохраняем возраст в базе данных
-        else:
+        age = int(message.text)
+        if 10 <= age <= 18:
+            save_registration_state(user_id, age=age)
             bot.register_next_step_handler(message, process_age)
-            bot.reply_to(message, "Пожалуйста, введите возраст цифрами.")
-
+        else:
+            bot.reply_to(message, "⚠️ К сожалению вы не можете пользоваться нашим ботом 😔 По нашим правилам пользоваться нашим ботом можно только от 10 до 18 лет")
+            bot.register_next_step_handler(message, process_age)
+            return
     except Exception as e:
-        print(f"Ошибка в process_age: {e}")
+        print(f"Ошибка в process_edit_age: {e}")
+        bot.reply_to(message, "⚠️ Произошла ошибка. Пожалуйста, введите возраст цифрами.")
         bot.register_next_step_handler(message, process_age)
-        bot.reply_to(message, "Пожалуйста, введите возраст цифрами.")
 
 
 def process_gender(message):
-    """Сохраняет пол пользователя и переходит к запросу интересов."""
+    markup = gender_menu(searching=False)
+    bot.send_message(message.chat.id, "Укажите ваш пол:", reply_markup=markup)
     try:
         user_id = message.from_user.id
         gender = message.text
-
-        # Проверка на допустимые варианты пола
-
-        if gender:
-            if gender not in ['М', 'Ж']:
-                bot.reply_to(message, "Пожалуйста, выберите пол из предложенных вариантов.")
-                markup = gender_menu(False)
-                bot.send_message(message.chat.id, "Какой у вас пол?", reply_markup=markup)
-                bot.register_next_step_handler(message, process_gender)
-                return
-            else:
-
-                save_registration_state(user_id, gender=gender)
-
-                bot.send_message(message.chat.id, "Расскажите о своих интересах (в нескольких словах):")
-                bot.register_next_step_handler(message, process_interests)
-        else:
+        if gender is None:
+            raise Exception("Gender is empty")
+        if gender.lower not in ['парень', 'девушка', 'мальчик', 'девочка', 'м', 'ж']:
+            bot.reply_to(message, "⚠️ Пожалуйста, выберите пол из предложенных вариантов")
             bot.register_next_step_handler(message, process_gender)
+            return
+        else:
 
-            bot.reply_to(message, 'Произошла ошибка. Пожалуйста, нажмите на одну из кнопок')
+            save_registration_state(user_id, gender=gender)
+
+            bot.send_message(message.chat.id, "Расскажите о своих интересах (в нескольких словах):")
+            bot.register_next_step_handler(message, process_interests)
     except Exception as e:
         print(f"Ошибка в process_gender: {e}")
         bot.register_next_step_handler(message, process_gender)
