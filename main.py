@@ -217,12 +217,20 @@ def get_liked_by(user_id):
 
 
 def main_buttons_menu():
-    btn_search = types.KeyboardButton("🔍Поиск🔍")
-    btn_likes = types.KeyboardButton("💘Кто меня лайкнул💘")  # Новая кнопка
-    btn_edit_profile = types.KeyboardButton("👤Изменить профиль👤")  # Новая кнопка
+    btn_search = types.KeyboardButton("🔍 Поиск 🔍")
+    btn_likes = types.KeyboardButton("💘 Кто меня лайкнул 💘")  # Новая кнопка
+    btn_edit_profile = types.KeyboardButton("👤 Изменить профиль 👤")  # Новая кнопка
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.add(btn_search, btn_likes, btn_edit_profile)
     return markup
+
+
+def search_gender_menu():
+    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    markup.add('М', 'Ж')
+    return  markup
+
 
 # --- Обработчики команд ---
 
@@ -265,8 +273,7 @@ def search_command(message):
         return
 
     # Отправляем клавиатуру с кнопками выбора пола
-    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
-    markup.add('М', 'Ж')
+    markup = search_gender_menu()
     bot.send_message(message.chat.id, "Кого вы ищете?", reply_markup=markup)
     bot.register_next_step_handler(message, process_search_gender)
 
@@ -440,8 +447,7 @@ def process_edit_age(message):
                 bot.reply_to(message, "Пожалуйста, введите корректный возраст (от 7 до 105).")
                 bot.register_next_step_handler(message, process_edit_age)
                 return
-            markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
-            markup.add('М', 'Ж')
+            markup = search_gender_menu()
             bot.send_message(message.chat.id, "Какой у вас пол?", reply_markup=markup)
             bot.register_next_step_handler(message, process_edit_gender)
 
@@ -467,8 +473,7 @@ def process_edit_gender(message):
         if gender:
             if gender not in ['М', 'Ж']:
                 bot.reply_to(message, "Пожалуйста, выберите пол из предложенных вариантов.")
-                markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
-                markup.add('М', 'Ж')
+                markup = search_gender_menu()
                 bot.send_message(message.chat.id, "Какой у вас пол?", reply_markup=markup)
                 bot.register_next_step_handler(message, process_edit_gender)
                 return
@@ -551,11 +556,7 @@ def process_edit_photo(message):
             save_user_data(user_id, name, age, gender, interests, about_me, username)  # Сохраняем в таблицу users
             clear_registration_state(user_id)  # Удаляем промежуточные данные
             # После регистрации добавляем кнопку поиска и кнопку "Кто меня лайкнул"
-            markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-            btn_search = types.KeyboardButton("🔍Поиск🔍")
-            btn_likes = types.KeyboardButton("💘Кто меня лайкнул💘")
-            btn_edit_profile = types.KeyboardButton("👤Изменить профиль👤")  # Новая кнопка
-            markup.add(btn_search, btn_likes, btn_edit_profile)
+            markup = main_buttons_menu()
             bot.send_message(message.chat.id, "Спасибо за регистрацию! Теперь вы можете начать поиск",
                              reply_markup=markup)
         else:
@@ -684,11 +685,7 @@ def back_to_menu_callback(call):
     existing_data = get_user_data(user_id)
 
     if existing_data:  # Пользователь зарегистрирован
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        btn_search = types.KeyboardButton("🔍Поиск🔍")
-        btn_likes = types.KeyboardButton("💘Кто меня лайкнул💘")
-        btn_edit_profile = types.KeyboardButton("👤Изменить профиль👤")  # Новая кнопка
-        markup.add(btn_search, btn_likes, btn_edit_profile)
+        markup = main_buttons_menu()
         bot.send_message(call.message.chat.id, "Что дальше?", reply_markup=markup)  # Отправляем сообщение с клавиатурой
     else:  # Пользователь не зарегистрирован (логически это вряд ли произойдет, но лучше обработать)
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -820,8 +817,7 @@ def process_age(message):
                 bot.reply_to(message, "Пожалуйста, введите корректный возраст (от 7 до 105).")
                 bot.register_next_step_handler(message, process_age)
                 return
-            markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
-            markup.add('М', 'Ж')
+            markup = search_gender_menu()
             bot.send_message(message.chat.id, "Какой у вас пол?", reply_markup=markup)
             bot.register_next_step_handler(message, process_gender)
 
@@ -847,8 +843,7 @@ def process_gender(message):
         if gender:
             if gender not in ['М', 'Ж']:
                 bot.reply_to(message, "Пожалуйста, выберите пол из предложенных вариантов.")
-                markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
-                markup.add('М', 'Ж')
+                markup = search_gender_menu()
                 bot.send_message(message.chat.id, "Какой у вас пол?", reply_markup=markup)
                 bot.register_next_step_handler(message, process_gender)
                 return
@@ -933,11 +928,7 @@ def process_photo(message):
             save_user_data(user_id, name, age, gender, interests, about_me, username)  # Сохраняем в таблицу users
             clear_registration_state(user_id)  # Удаляем промежуточные данные
             # После регистрации добавляем кнопку поиска и кнопку "Кто меня лайкнул"
-            markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-            btn_search = types.KeyboardButton("🔍Поиск🔍")
-            btn_likes = types.KeyboardButton("💘Кто меня лайкнул💘")
-            btn_edit_profile = types.KeyboardButton("👤Изменить профиль👤")  # Новая кнопка
-            markup.add(btn_search, btn_likes, btn_edit_profile)
+            markup = main_buttons_menu()
             bot.send_message(message.chat.id, "Спасибо за регистрацию! Теперь вы можете начать поиск",
                              reply_markup=markup)
         else:
