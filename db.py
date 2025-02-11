@@ -81,7 +81,6 @@ def get_user_data(user_id):
     cursor = conn.cursor()
     cursor.execute("SELECT user_id, name, age, gender, interests, about_me, photo, location, username FROM users WHERE user_id = ?", (user_id,))
     data = cursor.fetchone()
-    print(data)
     conn.close()
     if data:
         return {'user_id': data[0], 'name': data[1], 'age': data[2], 'gender': data[3], 'interests': data[4],

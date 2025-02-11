@@ -322,34 +322,6 @@ def back_to_menu_callback(call):
     bot.answer_callback_query(call.id, "Возвращаемся...")
 
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith('dislike:'))
-def dislike_callback(call):
-    """Обрабатывает нажатие кнопки "Дизлайк", удаляет пользователя из списка и показывает следующего."""
-    try:
-        bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
-    except Exception as e:
-        print(f"Ошибка при удалении сообщения: {e}")
-
-    user_id = call.from_user.id
-    disliked_user_id = call.data.split(':')[1]
-
-    user_data = bot.user_data.get(user_id)
-    if user_data:
-        users = user_data['users']
-        current_index = user_data['current_index']
-
-        if users and current_index < len(users):
-            del users[current_index]
-
-            user_data['users'] = users
-            bot.user_data[user_id] = user_data
-
-        bot.answer_callback_query(call.id, "Удаляем пользователя и ищем следующего...")
-        show_next_user(call.message, user_id)
-    else:
-        bot.send_message(call.message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, начните поиск заново.")
-
-
 def show_next_user(message, user_id):
     """Показывает следующего пользователя, обеспечивая зацикленный поиск."""
     user_data = bot.user_data.get(user_id)
@@ -395,6 +367,32 @@ def like_callback(call):
 
     bot.answer_callback_query(call.id, "Лайк поставлен")
     show_next_user(call.message, user_id)
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('dislike:'))
+def dislike_callback(call):
+    """Обрабатывает нажатие кнопки "Дизлайк", удаляет пользователя из списка и показывает следующего."""
+    try:
+        bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
+    except Exception as e:
+        print(f"Ошибка при удалении сообщения: {e}")
+
+    user_id = call.from_user.id
+    disliked_user_id = call.data.split(':')[1]
+
+    user_data = bot.user_data.get(user_id)
+    if user_data:
+        users = user_data['users']
+        current_index = user_data['current_index']
+
+        if users and current_index < len(users):
+            # del users[current_index]
+            user_data['users'] = users
+            bot.user_data[user_id] = user_data
+        # bot.answer_callback_query(call.id, "Удаляем пользователя и ищем следующего...")
+        show_next_user(call.message, user_id)
+    else:
+        bot.send_message(call.message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, начните поиск заново.")
 
 
 # --- Обработчики шагов регистрации ---
