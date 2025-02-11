@@ -48,26 +48,27 @@ def location_menu(searching: bool,):
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     """Приветственное сообщение и инструкция."""
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    btn_register = types.KeyboardButton("Регистрация")
-    markup.add(btn_register)
-    bot.reply_to(message, """
-🤗 Привет! Добро пожаловать в бота для знакомств школы 1518!
-Здесь ты сможешь найти себе людей для общения, совместного время препровождения,
-а может и нечто большее.. В любом случае желаю удачи! 🤗
-    """, reply_markup=markup)
-
+    user_id = message.from_user.id
+    existing_data = get_user_search_data(user_id)
+    if existing_data:
+        print(2)
+        bot.reply_to(message, "Вы уже зарегистрированы.")
+        markup = main_buttons_menu()
+        bot.send_message(message.chat.id, "Теперь вы можете начать поиск", reply_markup=markup)
+    else:
+        print(1)
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        btn_register = types.KeyboardButton("Регистрация")
+        markup.add(btn_register)
+        bot.reply_to(message, """
+        🤗 Привет! Добро пожаловать в бота для знакомств школы 1518!
+        Здесь ты сможешь найти себе людей для общения, совместного время препровождения,
+        а может и нечто большее.. В любом случае желаю удачи! 🤗
+            """, reply_markup=markup)
 
 @bot.message_handler(func=lambda message: "регистрация" in message.text.lower())
 def register_start(message):
     """Начинает процесс регистрации."""
-    user_id = message.from_user.id
-    existing_data = get_user_search_data(user_id)
-    if existing_data:
-        bot.reply_to(message, "Вы уже зарегистрированы.")
-        markup = main_buttons_menu()
-        bot.send_message(message.chat.id, "Теперь вы можете начать поиск", reply_markup=markup)
-        return
     bot.send_message(message.chat.id, "Пожалуйста, введите ваше имя:")
     bot.register_next_step_handler(message, process_name)
 
