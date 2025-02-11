@@ -140,11 +140,10 @@ def get_available_users(user_id, gender):
     cursor = conn.cursor()
 
     # Исключаем себя из поиска
-    query = "SELECT user_id, name, age, interests, about_me, username FROM users WHERE gender = ? AND user_id != ?"
+    query = "SELECT user_id, name, age, interests, about_me, location, username FROM users WHERE gender = ? AND user_id != ?"
     cursor.execute(query, (gender, user_id))
     users = cursor.fetchall()
     conn.close()
-
     available_users = [
         {
             'user_id': user[0],
@@ -152,11 +151,11 @@ def get_available_users(user_id, gender):
             'age': user[2],
             'interests': user[3],
             'about_me': user[4],
-            'username': user[5]
+            'location': user[5],
+            'username': user[6]
         }
         for user in users
     ]
-
     random.shuffle(available_users)
     return available_users
 

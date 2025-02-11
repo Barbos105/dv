@@ -256,6 +256,7 @@ def process_search_gender(message):
     except Exception as e:
         print(f"Ошибка в process_search_gender: {e}")
         bot.reply_to(message, '💔 Произошла ошибка при поиске. Подождите пока в боте появятся люди этого пола')
+        go_back_to_main_menu(message)
 
 
 def show_user(message, user_id):
@@ -283,7 +284,7 @@ def show_user(message, user_id):
         btn_back_to_menu = types.InlineKeyboardButton("Назад", callback_data="back_to_menu")
         markup.add(btn_like, btn_dislike, btn_back_to_menu)
         text = f"Нашел вот кого:\n\n{user['name']}, {user['age']} лет. Интересы: {user['interests']}.\n{user['about_me']}"
-        sent_message = bot.send_photo(message.chat.id, photo=open(f'images/image{user["user_id  "]}.jpg', 'rb'), caption=text, reply_markup=markup)
+        sent_message = bot.send_photo(message.chat.id, photo=open(f'images/image{user["user_id"]}.jpg', 'rb'), caption=text, reply_markup=markup)
 
         user_data['last_message_id'] = sent_message.message_id
         bot.user_data[user_id] = user_data
