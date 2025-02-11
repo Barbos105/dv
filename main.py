@@ -213,7 +213,6 @@ def edit_profile(message):
 def go_back_to_main_menu(message):
     user_id = message.chat.id
     existing_data = get_user_data(user_id)
-    # print('yep ' + str(user_id) + '\n' + message.text)
     if existing_data:
         markup = main_buttons_menu()
         bot.send_message(message.chat.id, "Возвращаемся в главное меню", reply_markup=markup)
@@ -441,9 +440,7 @@ def process_gender(message):
         if gender is None:
             raise Exception("Gender is empty")
         parsed_gender = gender.lower().split()[1]
-        print(parsed_gender, 1)
         if parsed_gender not in ['парень', 'девушка', 'мальчик', 'девочка']:
-            # print(gender + '\n' + gender.lower() + '\n' + gender.lower()[2:])
             bot.reply_to(message, "⚠️ Пожалуйста, сделайте выбор из предложенных опций")
             bot.register_next_step_handler(message, process_gender)
             return
@@ -452,7 +449,7 @@ def process_gender(message):
                 save_registration_state(user_id, gender='М')
             else:
                 save_registration_state(user_id, gender='Ж')
-            bot.send_message(message.chat.id, "Расскажите о своих интересах (в нескольких словах):")
+            bot.send_message(message.chat.id, "Расскажите о своих интересах (перечислите через запятую):")
             bot.register_next_step_handler(message, process_interests)
     except Exception as e:
         print(f"Ошибка в process_gender: {e}")
@@ -508,18 +505,15 @@ def process_location(message):
     try:
         user_id = message.from_user.id
         location = message.text
-        print(location, 3)
         if location is None:
             raise Exception("Location is empty")
         parsed_location = location.lower()
-        print(parsed_location, 2)
         if 'цандер' not in parsed_location and 'проспект' not in parsed_location and 'мир' not in parsed_location:
             bot.reply_to(message, "⚠️ Пожалуйста, сделайте выбор из предложенных опций")
             bot.register_next_step_handler(message, process_location)
             return
         else:
             if 'цандер' in parsed_location:
-                print(1)
                 save_registration_state(user_id, location='Цандера')
             else:
                 save_registration_state(user_id, location='Проспект мира')
@@ -544,7 +538,6 @@ def process_photo(message):
 
         with open(f"images/image{user_id}.jpg", 'wb') as new_file:
             new_file.write(downloaded_file)
-        print(photo)
         if photo:
             registration_state = get_registration_state(user_id)
             name = registration_state.get('name')
