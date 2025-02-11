@@ -37,6 +37,7 @@ def create_table():
         age TEXT,
         gender TEXT,
         interests TEXT,
+        about_me TEXT,
         photo BLOB,
         FOREIGN KEY (user_id) REFERENCES users(user_id)
     )
@@ -85,13 +86,12 @@ def get_user_data(user_id):
     """Получает данные пользователя из базы данных."""
     conn = sqlite3.connect(DATABASE_NAME)
     cursor = conn.cursor()
-    cursor.execute("SELECT name, age, gender, interests, about_me, photo, username FROM users WHERE user_id = ?", (user_id,))
+    cursor.execute("SELECT user_id, name, age, gender, interests, about_me, photo, username FROM users WHERE user_id = ?", (user_id,))
     data = cursor.fetchone()
-    print(data)
     conn.close()
     if data:
-        return {'name': data[0], 'age': data[1], 'gender': data[2], 'interests': data[3], 'about_me': data[4],
-                'username': data[5]}
+        return {'user_id': data[0], 'name': data[1], 'age': data[2], 'gender': data[3], 'interests': data[4],
+                'about_me': data[5], 'photo': data[6], 'username': data[7] }
     else:
         return None
 
@@ -124,7 +124,6 @@ def get_registration_state(user_id):
     cursor.execute("SELECT name, age, gender, interests, about_me FROM registration_states WHERE user_id = ?", (user_id,))
     data = cursor.fetchone()
     conn.close()
-    print(data, 2)
     if data:
         return {'name': data[0], 'age': data[1], 'gender': data[2], 'interests': data[3], 'about_me': data[4]}
     else:
@@ -278,7 +277,7 @@ def search_command(message):
     user_id = message.from_user.id
     existing_data = get_user_data(user_id)
     if not existing_data:
-        bot.reply_to(message, "Пожалуйста, сначала зарегистрируйтесь.")
+        bot.reply_to(message, "Пожалуйста, сначала зарегистрируйтесь 🙏")
         return
 
     # Отправляем клавиатуру с кнопками выбора пола
@@ -323,13 +322,10 @@ def show_liker_profile(message, user_id):
             btn_like = types.InlineKeyboardButton("❤️ Лайк", callback_data=f"like_liker:{liker_id}")
             btn_dislike = types.InlineKeyboardButton("👎 Дизлайк", callback_data=f"dislike_liker:{liker_id}")
             markup.add(btn_like, btn_dislike)
-
-            # Показываем профиль лайкнувшего
-            bot.send_message(message.chat.id,
-                             f"Вы понравились:\n\n"
-                             f"**{liker_data['name']}**, {liker_data['age']} лет. Интересы: {liker_data['interests']}\n"
-                             f"{liker_data['about_me']}",
-                             reply_markup=markup)
+            text = (f"Вы понравились:\n\n{liker_data['name']}, {liker_data['age']} лет. Интересы: {liker_data['interests']}."
+                    f"\n{liker_data['about_me']}")
+            bot.send_photo(message.chat.id, photo=open(f'images/image{liker_data['user_id']}.jpg', 'rb'),
+                                          caption=text, reply_markup=markup)
 
         else:
             bot.send_message(message.chat.id, "Данные пользователя недоступны.")
@@ -353,9 +349,8 @@ def like_liker_callback(call):
         # Показываем username лайкнувшего
         liker_data = get_user_data(liker_id)
         if liker_data:
-            username_text = f"@{liker_data['username']}" if liker_data.get('username') else "Нет username"
-            bot.send_message(user_id,
-                             f"Вы поставили лайк пользователю {liker_data['name']}. Его username: {username_text}")
+            username_text = f"@{liker_data['username']}" if liker_data.get('username') else "{ошибка получения лс}"
+            bot.send_message(user_id,f"Взаимная симпатия с {liker_data['name']}!\n Начинай общаться {username_text}")
 
         # Переходим к следующему лайкнувшему
         show_next_liker(call.message, user_id)
@@ -418,24 +413,25 @@ def edit_profile(message):
     user_id = message.from_user.id
     existing_data = get_user_data(user_id)
     if not existing_data:
-        bot.reply_to(message, "Пожалуйста, сначала зарегистрируйтесь.")
+        bot.reply_to(message, "Пожалуйста, сначала зарегистрируйтесь 🙏")
         return
+    bot.send_message(message.chat.id, "Ваше новое имя?")
     bot.register_next_step_handler(message, process_name)
 
 # --- Остальные функции и обработчики ---
 
 def go_back_to_main_menu(message):
-    user_id = message.from_user.id
+    user_id = message.chat.id
     existing_data = get_user_data(user_id)
-
+    # print('yep ' + str(user_id) + '\n' + message.text)
     if existing_data:
         markup = main_buttons_menu()
-        bot.send_message(message.chat.id, "Возвращаемся в главное меню.", reply_markup=markup)
+        bot.send_message(message.chat.id, "Возвращаемся в главное меню", reply_markup=markup)
     else:
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         btn_register = types.KeyboardButton("Регистрация")
         markup.add(btn_register)
-        bot.send_message(message.chat.id, "Пожалуйста, зарегистрируйтесь.", reply_markup=markup)
+        bot.send_message(message.chat.id, "Пожалуйста, зарегистрируйтесь 🙏", reply_markup=markup)
 
 
 def process_search_gender(message):
@@ -443,8 +439,8 @@ def process_search_gender(message):
     try:
         gender = message.text
         if gender.lower() not in ['парней', 'парней и девушек', 'девушек', 'мальчиков', 'мальчиков и девочек', 'девочек']:
-            bot.reply_to(message, "⚠️ Пожалуйста, выберите пол из предложенных вариантов")
-            bot.register_next_step_handler(message, process_search_gender)  # Повторяем запрос пола
+            bot.reply_to(message, "⚠️ Пожалуйста, сделайте выбор из предложенных вариантов")
+            bot.register_next_step_handler(message, process_search_gender)
             return
 
         user_id = message.from_user.id
@@ -454,7 +450,6 @@ def process_search_gender(message):
             available_users = get_available_users(user_id, 'Ж')
 
         if available_users:
-            # Инициализируем список пользователей для текущего пользователя
             bot.user_data[user_id] = {
                 'gender': gender,
                 'users': available_users,
@@ -464,7 +459,6 @@ def process_search_gender(message):
             markup = types.ReplyKeyboardRemove()
             bot.send_message(message.chat.id, "🔍 Принято, начинаю поиск...", reply_markup=markup)
             show_user(message, user_id)
-
         else:
             # Если пользователей не найдено, возвращаемся в главное меню
             bot.send_message(message.chat.id,
@@ -482,7 +476,6 @@ def show_user(message, user_id):
     if not user_data:
         bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, начните поиск заново.")
         return
-
     users = user_data['users']
     current_index = user_data['current_index']
 
@@ -502,11 +495,8 @@ def show_user(message, user_id):
         btn_dislike = types.InlineKeyboardButton("👎", callback_data=f"dislike:{user['user_id']}")
         btn_back_to_menu = types.InlineKeyboardButton("Назад", callback_data="back_to_menu")  # Кнопка "Назад в меню"
         markup.add(btn_like, btn_dislike, btn_back_to_menu)  # Добавляем кнопку в markup
-
-        sent_message = bot.send_message(message.chat.id, "Нашел вот кого:\n\n"
-                                                         f"**{user['name']}**, {user['age']} лет. Интересы: {user['interests']}\n."
-                                                         f"{user['about_me']}",
-                                        reply_markup=markup)
+        text = f"Нашел вот кого:\n\n{user['name']}, {user['age']} лет. Интересы: {user['interests']}.\n{user['about_me']}"
+        sent_message = bot.send_photo(message.chat.id, photo=open(f'images/image{user['user_id']}.jpg', 'rb'), caption=text, reply_markup=markup)
 
         # Сохраняем ID последнего сообщения
         user_data['last_message_id'] = sent_message.message_id
@@ -540,7 +530,7 @@ def back_to_menu_callback(call):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         btn_register = types.KeyboardButton("Регистрация")
         markup.add(btn_register)
-        bot.send_message(call.message.chat.id, "Пожалуйста, зарегистрируйтесь.", reply_markup=markup)
+        bot.send_message(call.message.chat.id, "Пожалуйста, зарегистрируйтесь 🙏", reply_markup=markup)
 
     # Очищаем данные поиска
     if user_id in bot.user_data:
@@ -656,10 +646,10 @@ def process_age(message):
         if 10 <= age <= 18:
             save_registration_state(user_id, age=age)
             markup = gender_menu(searching=False, age=age)
-            bot.send_message(message.chat.id, "Укажите ваш пол:", reply_markup=markup)
+            bot.send_message(message.chat.id, "Кто вы?", reply_markup=markup)
             bot.register_next_step_handler(message, process_gender)
         else:
-            bot.reply_to(message, "⚠️ К сожалению вы не можете пользоваться нашим ботом 😔 По нашим правилам пользоваться нашим ботом можно только от 10 до 18 лет")
+            bot.reply_to(message, "К сожалению вы не можете пользоваться нашим ботом 😔 По нашим правилам пользоваться нашим ботом можно только от 10 до 19 лет")
             bot.register_next_step_handler(message, process_age)
             return
     except Exception as e:
@@ -677,7 +667,7 @@ def process_gender(message):
         parsed_gender = gender.lower().split()[1]
         if parsed_gender not in ['парень', 'девушка', 'мальчик', 'девочка']:
             # print(gender + '\n' + gender.lower() + '\n' + gender.lower()[2:])
-            bot.reply_to(message, "⚠️ Пожалуйста, выберите пол из предложенных вариантов")
+            bot.reply_to(message, "⚠️ Пожалуйста, сделайте выбор из предложенных опций")
             bot.register_next_step_handler(message, process_gender)
             return
         else:
@@ -764,15 +754,9 @@ def process_photo(message):
             markup = main_buttons_menu()
             bot.send_message(message.chat.id, "Спасибо за регистрацию! Теперь вы можете начать поиск",
                              reply_markup=markup)
-            photo = open(f'images/image{user_id}.jpg', 'rb')
-            bot.send_photo(message.chat.id, photo, reply_markup=markup)
-            bot.send_message(message.chat.id, f"Ваша анкета: \n"
-                                              f"Имя: {name},\n"
-                                              f"Возраст: {age}, \n"
-                                              f"Пол: {gender},\n "
-                                              f"Интересы: {interests},\n "
-                                              f"О себе: {about_me}",
-                             reply_markup=markup)
+            text = f"Ваша анкета выглядит так:\n\n{name}, {age} лет. Интересы: {interests}.\n{about_me}"
+            bot.send_photo(message.chat.id, photo=open(f'images/image{user_id}.jpg', 'rb'),
+                                          caption=text, reply_markup=markup)
         else:
             bot.register_next_step_handler(message, process_photo)
 
