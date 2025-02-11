@@ -1,226 +1,18 @@
 import telebot
 from telebot import types
-import sqlite3
-import random
+from db import *
 import os
 
 BOT_TOKEN = open('token.txt').readline()
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-DATABASE_NAME = 'registration_data.db'
-
-
-def create_table():
-    """Создает таблицы users, registration_states, likes, matches, если они не существуют."""
-    conn = sqlite3.connect(DATABASE_NAME)
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        user_id INTEGER PRIMARY KEY,
-        name TEXT,
-        age INTEGER,
-        gender TEXT,
-        interests TEXT,
-        about_me TEXT,
-        photo BLOB,
-        username TEXT  -- Новое поле для username
-    )
-    """)
-
-    # Таблица для хранения промежуточных данных регистрации
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS registration_states (
-        user_id INTEGER PRIMARY KEY,
-        name TEXT,
-        age TEXT,
-        gender TEXT,
-        interests TEXT,
-        about_me TEXT,
-        photo BLOB,
-        FOREIGN KEY (user_id) REFERENCES users(user_id)
-    )
-    """)
-
-    # Таблица для хранения лайков
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS likes (
-        liker_id INTEGER,
-        likee_id INTEGER,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (liker_id, likee_id),
-        FOREIGN KEY (liker_id) REFERENCES users(user_id),
-        FOREIGN KEY (likee_id) REFERENCES users(user_id)
-    )
-    """)
-
-    # Таблица для хранения совпадений
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS matches (
-        user_id1 INTEGER,
-        user_id2 INTEGER,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (user_id1, user_id2),
-        FOREIGN KEY (user_id1) REFERENCES users(user_id),
-        FOREIGN KEY (user_id2) REFERENCES users(user_id)
-    )
-    """)
-
-    conn.commit()
-    conn.close()
-
-
-def save_user_data(user_id, name, age, gender, interests, about_me, photo, username=None):
-    """Сохраняет данные пользователя в базу данных."""
-    conn = sqlite3.connect(DATABASE_NAME)
-    cursor = conn.cursor()
-    cursor.execute(
-        "INSERT OR REPLACE INTO users (user_id, name, age, gender, interests, about_me, photo, username) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        (user_id, name, age, gender, interests, about_me, photo, username))
-    conn.commit()
-    conn.close()
-
-
-def get_user_data(user_id):
-    """Получает данные пользователя из базы данных."""
-    conn = sqlite3.connect(DATABASE_NAME)
-    cursor = conn.cursor()
-    cursor.execute("SELECT user_id, name, age, gender, interests, about_me, photo, username FROM users WHERE user_id = ?", (user_id,))
-    data = cursor.fetchone()
-    conn.close()
-    if data:
-        return {'user_id': data[0], 'name': data[1], 'age': data[2], 'gender': data[3], 'interests': data[4],
-                'about_me': data[5], 'photo': data[6], 'username': data[7] }
-    else:
-        return None
-
-
-def save_registration_state(user_id, name=None, age=None, gender=None, interests=None, about_me=None):
-    """Сохраняет промежуточное состояние регистрации в базу данных."""
-    conn = sqlite3.connect(DATABASE_NAME)
-    cursor = conn.cursor()
-
-    if name is not None:
-        cursor.execute("INSERT OR REPLACE INTO registration_states (user_id, name) VALUES (?, ?)", (user_id, name))
-    if age is not None:
-        cursor.execute("UPDATE registration_states SET age = ? WHERE user_id = ?", (age, user_id))
-    if gender is not None:
-        cursor.execute("UPDATE registration_states SET gender = ? WHERE user_id = ?", (gender, user_id))
-    if interests is not None:
-        cursor.execute("UPDATE registration_states SET interests = ? WHERE user_id = ?", (interests, user_id))
-    if about_me is not None:
-        cursor.execute("UPDATE registration_states SET about_me = ? WHERE user_id = ?", (about_me, user_id))
-
-    conn.commit()
-    conn.close()
-
-
-
-def get_registration_state(user_id):
-    """Получает промежуточное состояние регистрации из базы данных."""
-    conn = sqlite3.connect(DATABASE_NAME)
-    cursor = conn.cursor()
-    cursor.execute("SELECT name, age, gender, interests, about_me FROM registration_states WHERE user_id = ?", (user_id,))
-    data = cursor.fetchone()
-    conn.close()
-    if data:
-        return {'name': data[0], 'age': data[1], 'gender': data[2], 'interests': data[3], 'about_me': data[4]}
-    else:
-        return {}  # Возвращаем пустой словарь, если нет записи
-
-
-
-def clear_registration_state(user_id):
-    """Удаляет промежуточное состояние регистрации из базу данных."""
-    conn = sqlite3.connect(DATABASE_NAME)
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM registration_states WHERE user_id = ?", (user_id,))
-    conn.commit()
-    conn.close()
-
-
-def get_available_users(user_id, gender):
-    """Получает всех пользователей определенного пола, исключая себя."""
-    conn = sqlite3.connect(DATABASE_NAME)
-    cursor = conn.cursor()
-
-    # Исключаем себя из поиска
-    query = "SELECT user_id, name, age, interests, about_me, username FROM users WHERE gender = ? AND user_id != ?"
-    cursor.execute(query, (gender, user_id))
-    users = cursor.fetchall()
-    conn.close()
-
-    available_users = [
-        {
-            'user_id': user[0],
-            'name': user[1],
-            'age': user[2],
-            'interests': user[3],
-            'about_me': user[4],
-            'username': user[5]  # Добавляем username
-        }
-        for user in users
-    ]
-
-    random.shuffle(available_users)  # Перемешиваем список пользователей
-    return available_users
-
-
-def save_like(liker_id, likee_id):
-    """Сохраняет информацию о лайке в базу данных."""
-    conn = sqlite3.connect(DATABASE_NAME)
-    cursor = conn.cursor()
-    try:
-        cursor.execute("INSERT INTO likes (liker_id, likee_id) VALUES (?, ?)", (liker_id, likee_id))
-        conn.commit()
-        print(f"User {liker_id} liked user {likee_id}")
-    except sqlite3.IntegrityError:
-        print(f"User {liker_id} already liked user {likee_id}")
-    finally:
-        conn.close()
-
-
-def check_match(user_id1, user_id2):
-    """Проверяет, есть ли взаимный лайк между пользователями."""
-    conn = sqlite3.connect(DATABASE_NAME)
-    cursor = conn.cursor()
-    cursor.execute("SELECT 1 FROM likes WHERE liker_id = ? AND likee_id = ?", (user_id1, user_id2))
-    like1 = cursor.fetchone()
-    cursor.execute("SELECT 1 FROM likes WHERE liker_id = ? AND likee_id = ?", (user_id2, user_id1))
-    like2 = cursor.fetchone()
-    conn.close()
-    return like1 and like2
-
-
-def save_match(user_id1, user_id2):
-    """Сохраняет информацию о взаимном лайке (матче) в базе данных."""
-    conn = sqlite3.connect(DATABASE_NAME)
-    cursor = conn.cursor()
-    try:
-        cursor.execute("INSERT INTO matches (user_id1, user_id2) VALUES (?, ?)", (user_id1, user_id2))
-        conn.commit()
-        print(f"Match saved between user {user_id1} and user {user_id2}")
-    except sqlite3.IntegrityError:
-        print(f"Match already saved between user {user_id1} and user {user_id2}")
-    finally:
-        conn.close()
-
-
-def get_liked_by(user_id):
-    """Получает список пользователей, которые поставили лайк данному пользователю."""
-    conn = sqlite3.connect(DATABASE_NAME)
-    cursor = conn.cursor()
-    cursor.execute("SELECT liker_id FROM likes WHERE likee_id = ?", (user_id,))
-    liked_by = [row[0] for row in cursor.fetchall()]
-    conn.close()
-    return liked_by
 
 
 def main_buttons_menu():
     btn_search = types.KeyboardButton("🔍 Поиск 🔍")
-    btn_likes = types.KeyboardButton("💘 Кто меня лайкнул 💘")  # Новая кнопка
-    btn_edit_profile = types.KeyboardButton("👤 Изменить профиль 👤")  # Новая кнопка
+    btn_likes = types.KeyboardButton("💘 Кто меня лайкнул 💘")
+    btn_edit_profile = types.KeyboardButton("👤 Изменить профиль 👤")
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.add(btn_search, btn_likes, btn_edit_profile)
     return markup
@@ -280,7 +72,6 @@ def search_command(message):
         bot.reply_to(message, "Пожалуйста, сначала зарегистрируйтесь 🙏")
         return
 
-    # Отправляем клавиатуру с кнопками выбора пола
     markup = gender_menu(searching=True, age=13)
     bot.send_message(message.chat.id, "Кого вы ищете?", reply_markup=markup)
     bot.register_next_step_handler(message, process_search_gender)
@@ -293,12 +84,11 @@ def show_likers(message):
     likers = get_liked_by(user_id)
 
     if likers:
-        # Сохраняем список лайкнувших в user_data
         bot.user_data[user_id] = {
             'likers': likers,
             'current_index': 0
         }
-        show_liker_profile(message, user_id)  # Показываем профиль первого лайкнувшего
+        show_liker_profile(message, user_id)
     else:
         bot.send_message(message.chat.id, "Пока что вами никто не заинтересовался.")
 
@@ -340,19 +130,15 @@ def like_liker_callback(call):
         user_id = call.from_user.id
         liker_id = int(call.data.split(':')[1])
 
-        # Удаляем сообщение бота
         bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
 
-        # Удаляем лайк из базы данных
         remove_like(liker_id, user_id)
 
-        # Показываем username лайкнувшего
         liker_data = get_user_data(liker_id)
         if liker_data:
             username_text = f"@{liker_data['username']}" if liker_data.get('username') else "{ошибка получения лс}"
             bot.send_message(user_id,f"Взаимная симпатия с {liker_data['name']}!\n Начинай общаться {username_text}")
 
-        # Переходим к следующему лайкнувшему
         show_next_liker(call.message, user_id)
 
     except Exception as e:
@@ -367,13 +153,10 @@ def dislike_liker_callback(call):
         user_id = call.from_user.id
         liker_id = int(call.data.split(':')[1])
 
-        # Удаляем сообщение бота
         bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
 
-        # Удаляем лайк из базы данных
         remove_like(liker_id, user_id)
 
-        # Переходим к следующему лайкнувшему
         show_next_liker(call.message, user_id)
 
     except Exception as e:
@@ -402,10 +185,10 @@ def show_next_liker(message, user_id):
 
     if current_index + 1 < len(likers):
         user_data['current_index'] = current_index + 1
-        show_liker_profile(message, user_id)  # Показываем следующего лайкнувшего
+        show_liker_profile(message, user_id)
     else:
         bot.send_message(message.chat.id, "Больше нет пользователей, которые вас лайкнули.")
-        del bot.user_data[user_id]  # Очищаем данные
+        del bot.user_data[user_id]
 
 
 @bot.message_handler(func=lambda message: "изменить профиль" in message.text.lower())
@@ -460,7 +243,6 @@ def process_search_gender(message):
             bot.send_message(message.chat.id, "🔍 Принято, начинаю поиск...", reply_markup=markup)
             show_user(message, user_id)
         else:
-            # Если пользователей не найдено, возвращаемся в главное меню
             bot.send_message(message.chat.id,
                              "💔 К сожалению, больше пользователей с такими параметрами не найдено. Возвращаемся в главное меню.")
             go_back_to_main_menu(message)
@@ -479,32 +261,30 @@ def show_user(message, user_id):
     users = user_data['users']
     current_index = user_data['current_index']
 
-    # Зацикливание поиска
     if not users:
         bot.send_message(message.chat.id, "К сожалению, больше пользователей не найдено. Начинаем заново.")
-        gender = user_data['gender']  # Получаем пол из user_data
-        users = get_available_users(user_id, gender)  # Получаем новый список
+        gender = user_data['gender']
+        users = get_available_users(user_id, gender)
         user_data['users'] = users
         user_data['current_index'] = 0
-        current_index = 0  # Reset index
+        current_index = 0
 
     if current_index < len(users):
         user = users[current_index]
         markup = types.InlineKeyboardMarkup()
         btn_like = types.InlineKeyboardButton("❤️", callback_data=f"like:{user['user_id']}")
         btn_dislike = types.InlineKeyboardButton("👎", callback_data=f"dislike:{user['user_id']}")
-        btn_back_to_menu = types.InlineKeyboardButton("Назад", callback_data="back_to_menu")  # Кнопка "Назад в меню"
-        markup.add(btn_like, btn_dislike, btn_back_to_menu)  # Добавляем кнопку в markup
+        btn_back_to_menu = types.InlineKeyboardButton("Назад", callback_data="back_to_menu")
+        markup.add(btn_like, btn_dislike, btn_back_to_menu)
         text = f"Нашел вот кого:\n\n{user['name']}, {user['age']} лет. Интересы: {user['interests']}.\n{user['about_me']}"
         sent_message = bot.send_photo(message.chat.id, photo=open(f'images/image{user['user_id']}.jpg', 'rb'), caption=text, reply_markup=markup)
 
-        # Сохраняем ID последнего сообщения
         user_data['last_message_id'] = sent_message.message_id
-        bot.user_data[user_id] = user_data  # Обновляем данные пользователя
-    else:  # Этот блок больше не должен вызываться
+        bot.user_data[user_id] = user_data
+    else:
         bot.send_message(message.chat.id, "К сожалению, больше пользователей не найдено. Начинаем заново.")
-        gender = user_data['gender']  # Получаем пол из user_data
-        users = get_available_users(user_id, gender)  # Получаем новый список
+        gender = user_data['gender']
+        users = get_available_users(user_id, gender)
         user_data['users'] = users
         user_data['current_index'] = 0
         show_user(message, user_id)
@@ -514,25 +294,22 @@ def show_user(message, user_id):
 def back_to_menu_callback(call):
     """Обработчик для кнопки "Назад в меню"."""
     try:
-        # Удаляем сообщение бота
         bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
     except Exception as e:
         print(f"Ошибка при удалении сообщения: {e}")
 
-    # Вместо прямого вызова go_back_to_main_menu, отправляем новое сообщение с нужной клавиатурой:
     user_id = call.from_user.id
     existing_data = get_user_data(user_id)
 
-    if existing_data:  # Пользователь зарегистрирован
+    if existing_data:
         markup = main_buttons_menu()
-        bot.send_message(call.message.chat.id, "Что дальше?", reply_markup=markup)  # Отправляем сообщение с клавиатурой
-    else:  # Пользователь не зарегистрирован (логически это вряд ли произойдет, но лучше обработать)
+        bot.send_message(call.message.chat.id, "Что дальше?", reply_markup=markup)
+    else:
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         btn_register = types.KeyboardButton("Регистрация")
         markup.add(btn_register)
         bot.send_message(call.message.chat.id, "Пожалуйста, зарегистрируйтесь 🙏", reply_markup=markup)
 
-    # Очищаем данные поиска
     if user_id in bot.user_data:
         del bot.user_data[user_id]
 
@@ -543,28 +320,26 @@ def back_to_menu_callback(call):
 def dislike_callback(call):
     """Обрабатывает нажатие кнопки "Дизлайк", удаляет пользователя из списка и показывает следующего."""
     try:
-        # Удаляем сообщение бота
         bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
     except Exception as e:
         print(f"Ошибка при удалении сообщения: {e}")
 
     user_id = call.from_user.id
-    disliked_user_id = call.data.split(':')[1]  # Получаем id пользователя, которого дизлайкнули
+    disliked_user_id = call.data.split(':')[1]
 
     user_data = bot.user_data.get(user_id)
     if user_data:
         users = user_data['users']
         current_index = user_data['current_index']
 
-        # Удаляем дизлайкнутого пользователя из списка
         if users and current_index < len(users):
-            del users[current_index]  # Удаляем элемент на текущем индексе
+            del users[current_index]
 
-            user_data['users'] = users  # Обновляем список пользователей
-            bot.user_data[user_id] = user_data  # Обновляем данные пользователя
+            user_data['users'] = users
+            bot.user_data[user_id] = user_data
 
         bot.answer_callback_query(call.id, "Удаляем пользователя и ищем следующего...")
-        show_next_user(call.message, user_id)  # Показываем следующего
+        show_next_user(call.message, user_id)
     else:
         bot.send_message(call.message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, начните поиск заново.")
 
@@ -574,21 +349,18 @@ def show_next_user(message, user_id):
     user_data = bot.user_data.get(user_id)
     if user_data:
         users = user_data['users']
-        if users:  # Проверка, что список не пуст
-            # Переходим к следующему индексу
-            user_data['current_index'] = (user_data['current_index'] + 1) % len(users)  # Инкрементируем индекс
-            bot.user_data[user_id] = user_data  # Обновляем данные пользователя
+        if users:
+            user_data['current_index'] = (user_data['current_index'] + 1) % len(users)
+            bot.user_data[user_id] = user_data
             show_user(message, user_id)
         else:
-            # Если список пуст, получаем новый список и показываем первого
-            user_data['users'] = get_available_users(user_id, user_data['gender'])  # Получаем новый список
+            user_data['users'] = get_available_users(user_id, user_data['gender'])
             if user_data['users']:
                 user_data['current_index'] = 0
-                bot.user_data[user_id] = user_data  # Обновляем данные пользователя
+                bot.user_data[user_id] = user_data
                 show_user(message, user_id)
             else:
                 bot.send_message(message.chat.id, "💔 К сожалению, больше нет доступных пользователей.")
-                # Если новых пользователей не нашлось, возвращаемся в главное меню
                 go_back_to_main_menu(message)
     else:
         bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Начните поиск заново.")
@@ -598,7 +370,6 @@ def show_next_user(message, user_id):
 def like_callback(call):
     """Обрабатывает нажатие кнопки "Лайк"."""
     try:
-        # Удаляем сообщение бота
         bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
     except Exception as e:
         print(f"Ошибка при удалении сообщения: {e}")
@@ -606,20 +377,18 @@ def like_callback(call):
     user_id = call.from_user.id
     likee_id = int(call.data.split(':')[1])
 
-    save_like(user_id, likee_id)  # Сохраняем лайк в базе данных
+    save_like(user_id, likee_id)
 
-    if check_match(user_id, likee_id):  # Проверяем взаимность
+    if check_match(user_id, likee_id):
         save_match(user_id, likee_id)
-        # Уведомляем обоих пользователей о взаимной симпатии
 
-        # Показываем username после мэтча
         user_data = get_user_data(likee_id)
         if user_data:
             username_text = f"@{user_data['username']}" if user_data.get('username') else "Нет username"
             bot.send_message(user_id, f"Username пользователя: {username_text}")
 
     bot.answer_callback_query(call.id, "Лайк поставлен")
-    show_next_user(call.message, user_id)  # Показываем следующего пользователя
+    show_next_user(call.message, user_id)
 
 
 # --- Обработчики шагов регистрации ---
@@ -630,7 +399,7 @@ def process_name(message):
         name = message.text
         if name is None:
             raise Exception("Name is empty")
-        save_registration_state(user_id, name=name)  # Сохраняем имя в базе данных
+        save_registration_state(user_id, name=name)
         bot.send_message(message.chat.id, "Сколько вам лет?")
         bot.register_next_step_handler(message, process_age)
     except Exception as e:
@@ -745,12 +514,10 @@ def process_photo(message):
             interests = registration_state.get('interests')
             about_me = registration_state.get('about_me')
 
-            # Получаем username пользователя
             username = message.from_user.username
 
-            save_user_data(user_id, name, age, gender, interests, about_me, downloaded_file, username)  # Сохраняем в таблицу users
-            clear_registration_state(user_id)  # Удаляем промежуточные данные
-            # После регистрации добавляем кнопку поиска и кнопку "Кто меня лайкнул"
+            save_user_data(user_id, name, age, gender, interests, about_me, downloaded_file, username)
+            clear_registration_state(user_id)
             markup = main_buttons_menu()
             bot.send_message(message.chat.id, "Спасибо за регистрацию! Теперь вы можете начать поиск",
                              reply_markup=markup)
@@ -772,8 +539,8 @@ def process_photo(message):
 
 # --- Запуск бота ---
 if __name__ == '__main__':
-    bot.user_data = {}  # Инициализируем хранилище данных
-    create_table()  # Создаем таблицы при запуске бота
+    bot.user_data = {}
+    create_table()
 
     print("Бот запущен...")
     bot.infinity_polling()
