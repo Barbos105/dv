@@ -1,3 +1,5 @@
+import random
+
 import telebot
 from telebot import types
 from db import *
@@ -60,7 +62,7 @@ def send_welcome(message):
 def register_start(message):
     """Начинает процесс регистрации."""
     user_id = message.from_user.id
-    existing_data = get_user_data(user_id)
+    existing_data = get_user_search_data(user_id)
     if existing_data:
         bot.reply_to(message, "Вы уже зарегистрированы.")
         markup = main_buttons_menu()
@@ -74,7 +76,7 @@ def register_start(message):
 def search_command(message):
     """Запускает процесс поиска пользователей по полу."""
     user_id = message.from_user.id
-    existing_data = get_user_data(user_id)
+    existing_data = get_user_search_data(user_id)
     if not existing_data:
         bot.reply_to(message, "Пожалуйста, сначала зарегистрируйтесь 🙏")
         return
@@ -91,7 +93,7 @@ def show_likers(message):
     likers = get_liked_by(user_id)
 
     if likers:
-        bot.user_data[user_id] = {
+        bot.user_search_data[user_id] = {
             'likers': likers,
             'current_index': 0
         }
@@ -102,17 +104,17 @@ def show_likers(message):
 
 def show_liker_profile(message, user_id):
     """Показывает профиль лайкнувшего пользователя с кнопками Лайк и Дизлайк."""
-    user_data = bot.user_data.get(user_id)
-    if not user_data or 'likers' not in user_data:
+    user_search_data = bot.user_search_data.get(user_id)
+    if not user_search_data or 'likers' not in user_search_data:
         bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз.")
         return
 
-    likers = user_data['likers']
-    current_index = user_data.get('current_index', 0)
+    likers = user_search_data['likers']
+    current_index = user_search_data.get('current_index', 0)
 
     if current_index < len(likers):
         liker_id = likers[current_index]
-        liker_data = get_user_data(liker_id)
+        liker_data = get_user_search_data(liker_id)
 
         if liker_data:
             markup = types.InlineKeyboardMarkup()
@@ -141,7 +143,7 @@ def like_liker_callback(call):
 
         remove_like(liker_id, user_id)
 
-        liker_data = get_user_data(liker_id)
+        liker_data = get_user_search_data(liker_id)
         if liker_data:
             username_text = f"@{liker_data['username']}" if liker_data.get('username') else "{ошибка получения лс}"
             bot.send_message(user_id,f"Взаимная симпатия с {liker_data['name']}!\n Начинай общаться {username_text}")
@@ -182,26 +184,26 @@ def remove_like(liker_id, likee_id):
 
 def show_next_liker(message, user_id):
     """Переходит к следующему лайкнувшему пользователю."""
-    user_data = bot.user_data.get(user_id)
-    if not user_data or 'likers' not in user_data:
+    user_search_data = bot.user_search_data.get(user_id)
+    if not user_search_data or 'likers' not in user_search_data:
         bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз.")
         return
 
-    likers = user_data['likers']
-    current_index = user_data.get('current_index', 0)
+    likers = user_search_data['likers']
+    current_index = user_search_data.get('current_index', 0)
 
     if current_index + 1 < len(likers):
-        user_data['current_index'] = current_index + 1
+        user_search_data['current_index'] = current_index + 1
         show_liker_profile(message, user_id)
     else:
         bot.send_message(message.chat.id, "Больше нет пользователей, которые вас лайкнули.")
-        del bot.user_data[user_id]
+        del bot.user_search_data[user_id]
 
 
 @bot.message_handler(func=lambda message: "изменить профиль" in message.text.lower())
 def edit_profile(message):
     user_id = message.from_user.id
-    existing_data = get_user_data(user_id)
+    existing_data = get_user_search_data(user_id)
     if not existing_data:
         bot.reply_to(message, "Пожалуйста, сначала зарегистрируйтесь 🙏")
         return
@@ -212,7 +214,7 @@ def edit_profile(message):
 
 def go_back_to_main_menu(message):
     user_id = message.chat.id
-    existing_data = get_user_data(user_id)
+    existing_data = get_user_search_data(user_id)
     if existing_data:
         markup = main_buttons_menu()
         bot.send_message(message.chat.id, "Возвращаемся в главное меню", reply_markup=markup)
@@ -233,18 +235,21 @@ def process_search_gender(message):
             return
 
         user_id = message.from_user.id
+        search_gender = ''
         if gender.lower() in ['парней', 'мальчиков']:
             available_users = get_available_users(user_id, 'М')
+            search_gender = 'М'
         elif gender.lower() in ['девушек', 'девочек']:
             available_users = get_available_users(user_id, 'Ж')
+            search_gender = 'Ж'
         else:
             available_users = get_available_users(user_id, 'МЖ')
+            search_gender = 'МЖ'
 
         if available_users:
-            bot.user_data[user_id] = {
-                'gender': gender,
+            bot.user_search_data[user_id] = {
+                'gender': search_gender,
                 'users': available_users,
-                'current_index': 0,
                 'last_message_id': None
             }
             markup = types.ReplyKeyboardRemove()
@@ -262,89 +267,29 @@ def process_search_gender(message):
 
 
 def show_user(message, user_id):
-    """Показывает информацию о пользователе."""
-    user_data = bot.user_data.get(user_id)
-    if not user_data:
+    user_search_data = bot.user_search_data.get(user_id)
+    if not user_search_data:
         bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, начните поиск заново.")
         return
-    users = user_data['users']
-    current_index = user_data['current_index']
+    users = user_search_data['users']
+    # random.shuffle(users)
 
     if not users:
-        bot.send_message(message.chat.id, "К сожалению, больше пользователей не найдено. Начинаем заново.")
-        gender = user_data['gender']
+        gender = user_search_data['gender']
         users = get_available_users(user_id, gender)
-        user_data['users'] = users
-        user_data['current_index'] = 0
-        current_index = 0
+        user_search_data['users'] = users
 
-    if current_index < len(users):
-        user = users[current_index]
-        markup = types.InlineKeyboardMarkup()
-        btn_like = types.InlineKeyboardButton("❤️", callback_data=f"like:{user['user_id']}")
-        btn_dislike = types.InlineKeyboardButton("👎", callback_data=f"dislike:{user['user_id']}")
-        btn_back_to_menu = types.InlineKeyboardButton("Назад", callback_data="back_to_menu")
-        markup.add(btn_like, btn_dislike, btn_back_to_menu)
-        text = f"Нашел вот кого:\n\n{user['name']}, {user['age']} лет, {user['location']}. \nИнтересы: {user['interests']}\n{user['about_me']}"
-        sent_message = bot.send_photo(message.chat.id, photo=open(f'images/image{user["user_id"]}.jpg', 'rb'), caption=text, reply_markup=markup)
+    user = random.choice(users)
+    markup = types.InlineKeyboardMarkup()
+    btn_like = types.InlineKeyboardButton("❤️", callback_data=f"like:{user['user_id']}")
+    btn_dislike = types.InlineKeyboardButton("👎", callback_data=f"dislike:{user['user_id']}")
+    btn_back_to_menu = types.InlineKeyboardButton("Назад", callback_data="back_to_menu")
+    markup.add(btn_like, btn_dislike, btn_back_to_menu)
+    text = f"Нашел вот кого:\n\n{user['name']}, {user['age']} лет, {user['location']}. \nИнтересы: {user['interests']}\n{user['about_me']}"
+    sent_message = bot.send_photo(message.chat.id, photo=open(f'images/image{user["user_id"]}.jpg', 'rb'), caption=text, reply_markup=markup)
 
-        user_data['last_message_id'] = sent_message.message_id
-        bot.user_data[user_id] = user_data
-    else:
-        bot.send_message(message.chat.id, "К сожалению, больше пользователей не найдено. Начинаем заново.")
-        gender = user_data['gender']
-        users = get_available_users(user_id, gender)
-        user_data['users'] = users
-        user_data['current_index'] = 0
-        show_user(message, user_id)
-
-
-@bot.callback_query_handler(func=lambda call: call.data == "back_to_menu")
-def back_to_menu_callback(call):
-    """Обработчик для кнопки "Назад в меню"."""
-    try:
-        bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
-    except Exception as e:
-        print(f"Ошибка при удалении сообщения: {e}")
-
-    user_id = call.from_user.id
-    existing_data = get_user_data(user_id)
-
-    if existing_data:
-        markup = main_buttons_menu()
-        bot.send_message(call.message.chat.id, "Что дальше?", reply_markup=markup)
-    else:
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        btn_register = types.KeyboardButton("Регистрация")
-        markup.add(btn_register)
-        bot.send_message(call.message.chat.id, "Пожалуйста, зарегистрируйтесь 🙏", reply_markup=markup)
-
-    if user_id in bot.user_data:
-        del bot.user_data[user_id]
-
-    bot.answer_callback_query(call.id, "Возвращаемся...")
-
-
-def show_next_user(message, user_id):
-    """Показывает следующего пользователя, обеспечивая зацикленный поиск."""
-    user_data = bot.user_data.get(user_id)
-    if user_data:
-        users = user_data['users']
-        if users:
-            user_data['current_index'] = (user_data['current_index'] + 1) % len(users)
-            bot.user_data[user_id] = user_data
-            show_user(message, user_id)
-        else:
-            user_data['users'] = get_available_users(user_id, user_data['gender'])
-            if user_data['users']:
-                user_data['current_index'] = 0
-                bot.user_data[user_id] = user_data
-                show_user(message, user_id)
-            else:
-                bot.send_message(message.chat.id, "💔 К сожалению, больше нет доступных пользователей.")
-                go_back_to_main_menu(message)
-    else:
-        bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Начните поиск заново.")
+    user_search_data['last_message_id'] = sent_message.message_id
+    bot.user_search_data[user_id] = user_search_data
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('like:'))
@@ -363,13 +308,13 @@ def like_callback(call):
     if check_match(user_id, likee_id):
         save_match(user_id, likee_id)
 
-        user_data = get_user_data(likee_id)
-        if user_data:
-            username_text = f"@{user_data['username']}" if user_data.get('username') else "Нет username"
+        user_search_data = get_user_search_data(likee_id)
+        if user_search_data is not None:
+            username_text = f"@{user_search_data['username']}" if user_search_data.get('username') else "{ошибка получения юзернейма}"
             bot.send_message(user_id, f"Username пользователя: {username_text}")
 
     bot.answer_callback_query(call.id, "Лайк поставлен")
-    show_next_user(call.message, user_id)
+    show_user(call.message, user_id)
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('dislike:'))
@@ -381,21 +326,45 @@ def dislike_callback(call):
         print(f"Ошибка при удалении сообщения: {e}")
 
     user_id = call.from_user.id
-    disliked_user_id = call.data.split(':')[1]
+    disliked_user_id = int(call.data.split(':')[1])
 
-    user_data = bot.user_data.get(user_id)
-    if user_data:
-        users = user_data['users']
-        current_index = user_data['current_index']
-
-        if users and current_index < len(users):
-            # del users[current_index]
-            user_data['users'] = users
-            bot.user_data[user_id] = user_data
-        # bot.answer_callback_query(call.id, "Удаляем пользователя и ищем следующего...")
-        show_next_user(call.message, user_id)
+    user_search_data = bot.user_search_data.get(user_id)
+    if user_search_data is not None:
+        users = user_search_data['users']
+        index_disliked_user = [i for i in range(len(users)) if users[i]['user_id'] == disliked_user_id][0]
+        del users[index_disliked_user]
+        user_search_data['users'] = users
+        bot.user_search_data[user_id] = user_search_data
+        show_user(call.message, user_id)
     else:
         bot.send_message(call.message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, начните поиск заново.")
+
+
+@bot.callback_query_handler(func=lambda call: call.data == "back_to_menu")
+def back_to_menu_callback(call):
+    """Обработчик для кнопки "Назад в меню"."""
+    try:
+        bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
+    except Exception as e:
+        print(f"Ошибка при удалении сообщения: {e}")
+
+    user_id = call.from_user.id
+    existing_data = get_user_search_data(user_id)
+
+    if existing_data:
+        markup = main_buttons_menu()
+        bot.send_message(call.message.chat.id, "Что дальше?", reply_markup=markup)
+    else:
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        btn_register = types.KeyboardButton("Регистрация")
+        markup.add(btn_register)
+        bot.send_message(call.message.chat.id, "Пожалуйста, зарегистрируйтесь 🙏", reply_markup=markup)
+
+    if user_id in bot.user_search_data:
+        del bot.user_search_data[user_id]
+
+    bot.answer_callback_query(call.id, "Возвращаемся...")
+
 
 
 # --- Обработчики шагов регистрации ---
@@ -550,7 +519,7 @@ def process_photo(message):
 
             username = message.from_user.username
 
-            save_user_data(user_id, name, age, gender, interests, about_me, downloaded_file, location, username)
+            save_user_search_data(user_id, name, age, gender, interests, about_me, downloaded_file, location, username)
             clear_registration_state(user_id)
             markup = main_buttons_menu()
             bot.send_message(message.chat.id, "Спасибо за регистрацию! Теперь вы можете начать поиск",
@@ -573,7 +542,7 @@ def process_photo(message):
 
 # --- Запуск бота ---
 if __name__ == '__main__':
-    bot.user_data = {}
+    bot.user_search_data = {}
     create_table()
 
     print("Бот запущен...")
