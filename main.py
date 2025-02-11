@@ -539,6 +539,31 @@ def back_to_menu_callback(call):
     bot.answer_callback_query(call.id, "Возвращаемся...")
 
 
+def show_next_user(message, user_id):
+    """Показывает следующего пользователя, обеспечивая зацикленный поиск."""
+    user_data = bot.user_data.get(user_id)
+    if user_data:
+        users = user_data['users']
+        if users:  # Проверка, что список не пуст
+            # Переходим к следующему индексу
+            user_data['current_index'] = (user_data['current_index'] + 1) % len(users)  # Инкрементируем индекс
+            bot.user_data[user_id] = user_data  # Обновляем данные пользователя
+            show_user(message, user_id)
+        else:
+            # Если список пуст, получаем новый список и показываем первого
+            user_data['users'] = get_available_users(user_id, user_data['gender'])  # Получаем новый список
+            if user_data['users']:
+                user_data['current_index'] = 0
+                bot.user_data[user_id] = user_data  # Обновляем данные пользователя
+                show_user(message, user_id)
+            else:
+                bot.send_message(message.chat.id, "💔 К сожалению, больше нет доступных пользователей.")
+                # Если новых пользователей не нашлось, возвращаемся в главное меню
+                go_back_to_main_menu(message)
+    else:
+        bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Начните поиск заново.")
+
+
 @bot.callback_query_handler(func=lambda call: call.data.startswith('dislike:'))
 def dislike_callback(call):
     """Обрабатывает нажатие кнопки "Дизлайк", удаляет пользователя из списка и показывает следующего."""
@@ -567,31 +592,6 @@ def dislike_callback(call):
         show_next_user(call.message, user_id)  # Показываем следующего
     else:
         bot.send_message(call.message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, начните поиск заново.")
-
-
-def show_next_user(message, user_id):
-    """Показывает следующего пользователя, обеспечивая зацикленный поиск."""
-    user_data = bot.user_data.get(user_id)
-    if user_data:
-        users = user_data['users']
-        if users:  # Проверка, что список не пуст
-            # Переходим к следующему индексу
-            user_data['current_index'] = (user_data['current_index'] + 1) % len(users)  # Инкрементируем индекс
-            bot.user_data[user_id] = user_data  # Обновляем данные пользователя
-            show_user(message, user_id)
-        else:
-            # Если список пуст, получаем новый список и показываем первого
-            user_data['users'] = get_available_users(user_id, user_data['gender'])  # Получаем новый список
-            if user_data['users']:
-                user_data['current_index'] = 0
-                bot.user_data[user_id] = user_data  # Обновляем данные пользователя
-                show_user(message, user_id)
-            else:
-                bot.send_message(message.chat.id, "💔 К сожалению, больше нет доступных пользователей.")
-                # Если новых пользователей не нашлось, возвращаемся в главное меню
-                go_back_to_main_menu(message)
-    else:
-        bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Начните поиск заново.")
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('like:'))
@@ -675,7 +675,7 @@ def process_gender(message):
                 save_registration_state(user_id, gender='М')
             else:
                 save_registration_state(user_id, gender='Ж')
-            bot.send_message(message.chat.id, "Расскажите о своих интересах (в нескольких словах):")
+            bot.send_message(message.chat.id, "Перечислите свои интересы через запятую:")
             bot.register_next_step_handler(message, process_interests)
     except Exception as e:
         print(f"Ошибка в process_gender: {e}")
