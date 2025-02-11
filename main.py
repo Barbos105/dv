@@ -283,7 +283,7 @@ def show_user(message, user_id):
         btn_dislike = types.InlineKeyboardButton("👎", callback_data=f"dislike:{user['user_id']}")
         btn_back_to_menu = types.InlineKeyboardButton("Назад", callback_data="back_to_menu")
         markup.add(btn_like, btn_dislike, btn_back_to_menu)
-        text = f"Нашел вот кого:\n\n{user['name']}, {user['age']} лет. Интересы: {user['interests']}.\n{user['about_me']}"
+        text = f"Нашел вот кого:\n\n{user['name']}, {user['age']} лет, {user['location']}. \nИнтересы: {user['interests']}\n{user['about_me']}"
         sent_message = bot.send_photo(message.chat.id, photo=open(f'images/image{user["user_id"]}.jpg', 'rb'), caption=text, reply_markup=markup)
 
         user_data['last_message_id'] = sent_message.message_id
