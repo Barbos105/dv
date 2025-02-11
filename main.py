@@ -8,7 +8,7 @@ import os
 
 BOT_TOKEN = open('token.txt').readline()
 
-bot = telebot.TeleBot(BOT_TOKEN)
+bot = telebot.TeleBot(BOT_TOKEN, parse_mode='MARKDOWN')
 
 
 def main_buttons_menu():
@@ -42,14 +42,13 @@ def location_menu(searching: bool,):
     markup.add('проспект', 'цандера')
     return  markup
 
-
 # --- Обработчики команд ---
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     """Приветственное сообщение и инструкция."""
     user_id = message.from_user.id
-    existing_data = get_user_search_data(user_id)
+    existing_data = get_user_data(user_id)
     if existing_data:
         print(2)
         bot.reply_to(message, "Вы уже зарегистрированы.")
@@ -66,6 +65,7 @@ def send_welcome(message):
         а может и нечто большее.. В любом случае желаю удачи! 🤗
             """, reply_markup=markup)
 
+
 @bot.message_handler(func=lambda message: "регистрация" in message.text.lower())
 def register_start(message):
     """Начинает процесс регистрации."""
@@ -77,7 +77,7 @@ def register_start(message):
 def search_command(message):
     """Запускает процесс поиска пользователей по полу."""
     user_id = message.from_user.id
-    existing_data = get_user_search_data(user_id)
+    existing_data = get_user_data(user_id)
     if not existing_data:
         bot.reply_to(message, "Пожалуйста, сначала зарегистрируйтесь 🙏")
         return
@@ -115,17 +115,17 @@ def show_liker_profile(message, user_id):
 
     if current_index < len(likers):
         liker_id = likers[current_index]
-        liker_data = get_user_search_data(liker_id)
+        liker_data = get_user_data(liker_id)
 
         if liker_data:
             markup = types.InlineKeyboardMarkup()
             btn_like = types.InlineKeyboardButton("❤️ Лайк", callback_data=f"like_liker:{liker_id}")
             btn_dislike = types.InlineKeyboardButton("👎 Дизлайк", callback_data=f"dislike_liker:{liker_id}")
             markup.add(btn_like, btn_dislike)
-            text = (f"Вы понравились:\n\n{liker_data['name']}, {liker_data['age']} лет. Интересы: {liker_data['interests']}."
+            text = (f"Вы понравились:\n\n<b>{liker_data['name']}</b><i>, {liker_data['age']} лет.</i> Интересы: {liker_data['interests']}."
                     f"\n{liker_data['about_me']}")
             bot.send_photo(message.chat.id, photo=open(f'images/image{liker_data["user_id"]}.jpg', 'rb'),
-                                          caption=text, reply_markup=markup)
+                                          caption=text, reply_markup=markup, parse_mode='HTML')
 
         else:
             bot.send_message(message.chat.id, "Данные пользователя недоступны.")
@@ -144,10 +144,13 @@ def like_liker_callback(call):
 
         remove_like(liker_id, user_id)
 
-        liker_data = get_user_search_data(liker_id)
+        liker_data = get_user_data(liker_id)
+        user_data = get_user_data(user_id)
         if liker_data:
-            username_text = f"@{liker_data['username']}" if liker_data.get('username') else "{ошибка получения лс}"
-            bot.send_message(user_id,f"Взаимная симпатия с {liker_data['name']}!\n Начинай общаться {username_text}")
+            user_ping = f"@{user_data['username']}" if user_data.get('username') else "{ошибка получения лс}"
+            bot.send_message(liker_id,f"🤩 Взаимная симпатия с {user_data['name']}!\n Начинай общаться {user_ping}")
+            liker_ping = f"@{liker_data['username']}" if liker_data.get('username') else "{ошибка получения лс}"
+            bot.send_message(user_id,f"🤩 Взаимная симпатия с {liker_data['name']}!\n Начинай общаться {liker_ping}")
 
         show_next_liker(call.message, user_id)
 
@@ -204,7 +207,7 @@ def show_next_liker(message, user_id):
 @bot.message_handler(func=lambda message: "изменить профиль" in message.text.lower())
 def edit_profile(message):
     user_id = message.from_user.id
-    existing_data = get_user_search_data(user_id)
+    existing_data = get_user_data(user_id)
     if not existing_data:
         bot.reply_to(message, "Пожалуйста, сначала зарегистрируйтесь 🙏")
         return
@@ -215,7 +218,7 @@ def edit_profile(message):
 
 def go_back_to_main_menu(message):
     user_id = message.chat.id
-    existing_data = get_user_search_data(user_id)
+    existing_data = get_user_data(user_id)
     if existing_data:
         markup = main_buttons_menu()
         bot.send_message(message.chat.id, "Возвращаемся в главное меню", reply_markup=markup)
@@ -286,8 +289,9 @@ def show_user(message, user_id):
     btn_dislike = types.InlineKeyboardButton("👎", callback_data=f"dislike:{user['user_id']}")
     btn_back_to_menu = types.InlineKeyboardButton("Назад", callback_data="back_to_menu")
     markup.add(btn_like, btn_dislike, btn_back_to_menu)
-    text = f"Нашел вот кого:\n\n{user['name']}, {user['age']} лет, {user['location']}. \nИнтересы: {user['interests']}\n{user['about_me']}"
-    sent_message = bot.send_photo(message.chat.id, photo=open(f'images/image{user["user_id"]}.jpg', 'rb'), caption=text, reply_markup=markup)
+    text = f"Нашел вот кого:\n\n<b>{user['name']}</b><i>, {user['age']} лет, {user['location']}.</i> \nИнтересы: {user['interests']}\n{user['about_me']}"
+    sent_message = bot.send_photo(message.chat.id, photo=open(f'images/image{user["user_id"]}.jpg', 'rb'),
+                                  caption=text, reply_markup=markup, parse_mode='HTML')
 
     user_search_data['last_message_id'] = sent_message.message_id
     bot.user_search_data[user_id] = user_search_data
@@ -304,15 +308,22 @@ def like_callback(call):
     user_id = call.from_user.id
     likee_id = int(call.data.split(':')[1])
 
+    bot.send_message(likee_id, '💘 Тебя кто-то лайкнул! Нажми <i>кто меня лайкнул</i>, чтобы посмотреть 👀',
+                     parse_mode='HTML')
+
     save_like(user_id, likee_id)
 
     if check_match(user_id, likee_id):
         save_match(user_id, likee_id)
 
-        user_search_data = get_user_search_data(likee_id)
-        if user_search_data is not None:
-            username_text = f"@{user_search_data['username']}" if user_search_data.get('username') else "{ошибка получения юзернейма}"
-            bot.send_message(user_id, f"Username пользователя: {username_text}")
+        user_data = get_user_data(user_id)
+        liker_data = get_user_data(likee_id)
+        if user_data is not None:
+
+            user_ping = f"@{user_data['username']}" if user_data.get('username') else "{ошибка получения лс}"
+            bot.send_message(likee_id,f"🤩 Взаимная симпатия с {user_data['name']}!\n Начинай общаться {user_ping}")
+            liker_ping = f"@{liker_data['username']}" if liker_data.get('username') else "{ошибка получения лс}"
+            bot.send_message(user_id,f"🤩 Взаимная симпатия с {liker_data['name']}!\n Начинай общаться {liker_ping}")
 
     bot.answer_callback_query(call.id, "Лайк поставлен")
     show_user(call.message, user_id)
@@ -350,7 +361,7 @@ def back_to_menu_callback(call):
         print(f"Ошибка при удалении сообщения: {e}")
 
     user_id = call.from_user.id
-    existing_data = get_user_search_data(user_id)
+    existing_data = get_user_data(user_id)
 
     if existing_data:
         markup = main_buttons_menu()
@@ -365,7 +376,6 @@ def back_to_menu_callback(call):
         del bot.user_search_data[user_id]
 
     bot.answer_callback_query(call.id, "Возвращаемся...")
-
 
 
 # --- Обработчики шагов регистрации ---
@@ -520,14 +530,14 @@ def process_photo(message):
 
             username = message.from_user.username
 
-            save_user_search_data(user_id, name, age, gender, interests, about_me, downloaded_file, location, username)
+            save_user_data(user_id, name, age, gender, interests, about_me, downloaded_file, location, username)
             clear_registration_state(user_id)
             markup = main_buttons_menu()
             bot.send_message(message.chat.id, "Спасибо за регистрацию! Теперь вы можете начать поиск",
                              reply_markup=markup)
-            text = f"Ваша анкета выглядит так:\n\n{name}, {age} лет, {location}. \nИнтересы: {interests}\n{about_me}"
+            text = f"Ваша анкета выглядит так:\n\n<b>{name}</b><i>, {age} лет, {location}.</i> \nИнтересы: {interests}\n{about_me}"
             bot.send_photo(message.chat.id, photo=open(f'images/image{user_id}.jpg', 'rb'),
-                                          caption=text, reply_markup=markup)
+                                          caption=text, reply_markup=markup, parse_mode='HTML')
         else:
             bot.register_next_step_handler(message, process_photo)
 

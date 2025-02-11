@@ -64,7 +64,7 @@ def create_table():
 
 
 
-def save_user_search_data(user_id, name, age, gender, interests, about_me, photo, location, username=None):
+def save_user_data(user_id, name, age, gender, interests, about_me, photo, location, username=None):
     """Сохраняет данные пользователя в базу данных."""
     conn = sqlite3.connect(DATABASE_NAME)
     cursor = conn.cursor()
@@ -75,7 +75,7 @@ def save_user_search_data(user_id, name, age, gender, interests, about_me, photo
     conn.close()
 
 
-def get_user_search_data(user_id):
+def get_user_data(user_id):
     """Получает данные пользователя из базы данных."""
     conn = sqlite3.connect(DATABASE_NAME)
     cursor = conn.cursor()
