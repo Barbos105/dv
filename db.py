@@ -139,9 +139,12 @@ def get_available_users(user_id, gender):
     conn = sqlite3.connect(DATABASE_NAME)
     cursor = conn.cursor()
 
-    # Исключаем себя из поиска
-    query = "SELECT user_id, name, age, interests, about_me, location, username FROM users WHERE gender = ? AND user_id != ?"
-    cursor.execute(query, (gender, user_id))
+    if gender == 'МЖ':
+        query = "SELECT user_id, name, age, interests, about_me, location, username FROM users WHERE user_id != ?"
+        cursor.execute(query, (user_id,))
+    else:
+        query = "SELECT user_id, name, age, interests, about_me, location, username FROM users WHERE gender = ? AND user_id != ?"
+        cursor.execute(query, (gender, user_id))
     users = cursor.fetchall()
     conn.close()
     available_users = [

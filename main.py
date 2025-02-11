@@ -235,8 +235,10 @@ def process_search_gender(message):
         user_id = message.from_user.id
         if gender.lower() in ['парней', 'мальчиков']:
             available_users = get_available_users(user_id, 'М')
-        else:
+        elif gender.lower() in ['девушек', 'девочек']:
             available_users = get_available_users(user_id, 'Ж')
+        else:
+            available_users = get_available_users(user_id, 'МЖ')
 
         if available_users:
             bot.user_data[user_id] = {
