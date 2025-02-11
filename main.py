@@ -1,6 +1,7 @@
 import random
 
 import telebot
+from telebot.types import ReplyKeyboardRemove
 from telebot import types
 from db import *
 import os
@@ -8,7 +9,6 @@ import os
 BOT_TOKEN = open('token.txt').readline()
 
 bot = telebot.TeleBot(BOT_TOKEN)
-
 
 
 def main_buttons_menu():
@@ -69,7 +69,7 @@ def send_welcome(message):
 @bot.message_handler(func=lambda message: "регистрация" in message.text.lower())
 def register_start(message):
     """Начинает процесс регистрации."""
-    bot.send_message(message.chat.id, "Пожалуйста, введите ваше имя:")
+    bot.send_message(message.chat.id, "Пожалуйста, введите ваше имя:", reply_markup=ReplyKeyboardRemove())
     bot.register_next_step_handler(message, process_name)
 
 
@@ -208,7 +208,7 @@ def edit_profile(message):
     if not existing_data:
         bot.reply_to(message, "Пожалуйста, сначала зарегистрируйтесь 🙏")
         return
-    bot.send_message(message.chat.id, "Ваше новое имя?")
+    bot.send_message(message.chat.id, "Ваше новое имя?", reply_markup=ReplyKeyboardRemove())
     bot.register_next_step_handler(message, process_name)
 
 # --- Остальные функции и обработчики ---
@@ -537,8 +537,6 @@ def process_photo(message):
         bot.register_next_step_handler(message, process_photo)
 
         bot.reply_to(message, '⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
-
-
 
 
 # --- Запуск бота ---
