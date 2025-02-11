@@ -34,6 +34,13 @@ def gender_menu(searching: bool, age: int):
     return  markup
 
 
+def location_menu(searching: bool,):
+    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    markup.add('проспект', 'цандера')
+    return  markup
+
+
 # --- Обработчики команд ---
 
 @bot.message_handler(commands=['start', 'help'])
@@ -114,7 +121,7 @@ def show_liker_profile(message, user_id):
             markup.add(btn_like, btn_dislike)
             text = (f"Вы понравились:\n\n{liker_data['name']}, {liker_data['age']} лет. Интересы: {liker_data['interests']}."
                     f"\n{liker_data['about_me']}")
-            bot.send_photo(message.chat.id, photo=open(f'images/image{liker_data['user_id']}.jpg', 'rb'),
+            bot.send_photo(message.chat.id, photo=open(f'images/image{liker_data["user_id"]}.jpg', 'rb'),
                                           caption=text, reply_markup=markup)
 
         else:
@@ -277,7 +284,7 @@ def show_user(message, user_id):
         btn_back_to_menu = types.InlineKeyboardButton("Назад", callback_data="back_to_menu")
         markup.add(btn_like, btn_dislike, btn_back_to_menu)
         text = f"Нашел вот кого:\n\n{user['name']}, {user['age']} лет. Интересы: {user['interests']}.\n{user['about_me']}"
-        sent_message = bot.send_photo(message.chat.id, photo=open(f'images/image{user['user_id']}.jpg', 'rb'), caption=text, reply_markup=markup)
+        sent_message = bot.send_photo(message.chat.id, photo=open(f'images/image{user["user_id  "]}.jpg', 'rb'), caption=text, reply_markup=markup)
 
         user_data['last_message_id'] = sent_message.message_id
         bot.user_data[user_id] = user_data
@@ -418,7 +425,7 @@ def process_age(message):
             bot.send_message(message.chat.id, "Кто вы?", reply_markup=markup)
             bot.register_next_step_handler(message, process_gender)
         else:
-            bot.reply_to(message, "К сожалению вы не можете пользоваться нашим ботом 😔 По нашим правилам пользоваться нашим ботом можно только от 10 до 19 лет")
+            bot.reply_to(message, "К сожалению вы не можете пользоваться нашим ботом 😔 По нашим правилам пользоваться нашим ботом можно только от 10 до 18 лет")
             bot.register_next_step_handler(message, process_age)
             return
     except Exception as e:
@@ -434,6 +441,7 @@ def process_gender(message):
         if gender is None:
             raise Exception("Gender is empty")
         parsed_gender = gender.lower().split()[1]
+        print(parsed_gender, 1)
         if parsed_gender not in ['парень', 'девушка', 'мальчик', 'девочка']:
             # print(gender + '\n' + gender.lower() + '\n' + gender.lower()[2:])
             bot.reply_to(message, "⚠️ Пожалуйста, сделайте выбор из предложенных опций")
@@ -482,8 +490,9 @@ def process_about_me(message):
         if about_me:
             save_registration_state(user_id, about_me=about_me)
 
-            bot.send_message(message.chat.id, "Ваше фото:")
-            bot.register_next_step_handler(message, process_photo)
+            markup = location_menu(searching=False)
+            bot.send_message(message.chat.id, "В каком корпусе 1518 Вы учитесь?", reply_markup=markup)
+            bot.register_next_step_handler(message, process_location)
 
         else:
             bot.register_next_step_handler(message, process_about_me)
@@ -491,6 +500,35 @@ def process_about_me(message):
     except Exception as e:
         print(f"Ошибка в process_about_me: {e}")
         bot.register_next_step_handler(message, process_about_me)
+        bot.reply_to(message, '⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
+
+
+def process_location(message):
+    """Сохраняет 'о себе' пользователя и завершает регистрацию."""
+    try:
+        user_id = message.from_user.id
+        location = message.text
+        print(location, 3)
+        if location is None:
+            raise Exception("Location is empty")
+        parsed_location = location.lower()
+        print(parsed_location, 2)
+        if 'цандер' not in parsed_location and 'проспект' not in parsed_location and 'мир' not in parsed_location:
+            bot.reply_to(message, "⚠️ Пожалуйста, сделайте выбор из предложенных опций")
+            bot.register_next_step_handler(message, process_location)
+            return
+        else:
+            if 'цандер' in parsed_location:
+                print(1)
+                save_registration_state(user_id, location='Цандера')
+            else:
+                save_registration_state(user_id, location='Проспект мира')
+            bot.send_message(message.chat.id, "Ваше фото:")
+            bot.register_next_step_handler(message, process_photo)
+
+    except Exception as e:
+        print(f"Ошибка в process_location: {e}")
+        bot.register_next_step_handler(message, process_location)
         bot.reply_to(message, '⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз ввести данные')
 
 
@@ -506,6 +544,7 @@ def process_photo(message):
 
         with open(f"images/image{user_id}.jpg", 'wb') as new_file:
             new_file.write(downloaded_file)
+        print(photo)
         if photo:
             registration_state = get_registration_state(user_id)
             name = registration_state.get('name')
@@ -513,15 +552,16 @@ def process_photo(message):
             gender = registration_state.get('gender')
             interests = registration_state.get('interests')
             about_me = registration_state.get('about_me')
+            location = registration_state.get('location')
 
             username = message.from_user.username
 
-            save_user_data(user_id, name, age, gender, interests, about_me, downloaded_file, username)
+            save_user_data(user_id, name, age, gender, interests, about_me, downloaded_file, location, username)
             clear_registration_state(user_id)
             markup = main_buttons_menu()
             bot.send_message(message.chat.id, "Спасибо за регистрацию! Теперь вы можете начать поиск",
                              reply_markup=markup)
-            text = f"Ваша анкета выглядит так:\n\n{name}, {age} лет. Интересы: {interests}.\n{about_me}"
+            text = f"Ваша анкета выглядит так:\n\n{name}, {age} лет, {location}. \nИнтересы: {interests}\n{about_me}"
             bot.send_photo(message.chat.id, photo=open(f'images/image{user_id}.jpg', 'rb'),
                                           caption=text, reply_markup=markup)
         else:

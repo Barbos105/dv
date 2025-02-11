@@ -18,6 +18,7 @@ def create_table():
         interests TEXT,
         about_me TEXT,
         photo BLOB,
+        location TEXT,
         username TEXT  -- Новое поле для username
     )
     """)
@@ -31,6 +32,7 @@ def create_table():
         interests TEXT,
         about_me TEXT,
         photo BLOB,
+        location TEXT,
         FOREIGN KEY (user_id) REFERENCES users(user_id)
     )
     """)
@@ -62,13 +64,13 @@ def create_table():
 
 
 
-def save_user_data(user_id, name, age, gender, interests, about_me, photo, username=None):
+def save_user_data(user_id, name, age, gender, interests, about_me, photo, location, username=None):
     """Сохраняет данные пользователя в базу данных."""
     conn = sqlite3.connect(DATABASE_NAME)
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT OR REPLACE INTO users (user_id, name, age, gender, interests, about_me, photo, username) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        (user_id, name, age, gender, interests, about_me, photo, username))
+        "INSERT OR REPLACE INTO users (user_id, name, age, gender, interests, about_me, photo, location, username) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (user_id, name, age, gender, interests, about_me, photo, location, username))
     conn.commit()
     conn.close()
 
@@ -77,18 +79,19 @@ def get_user_data(user_id):
     """Получает данные пользователя из базы данных."""
     conn = sqlite3.connect(DATABASE_NAME)
     cursor = conn.cursor()
-    cursor.execute("SELECT user_id, name, age, gender, interests, about_me, photo, username FROM users WHERE user_id = ?", (user_id,))
+    cursor.execute("SELECT user_id, name, age, gender, interests, about_me, photo, location, username FROM users WHERE user_id = ?", (user_id,))
     data = cursor.fetchone()
+    print(data)
     conn.close()
     if data:
         return {'user_id': data[0], 'name': data[1], 'age': data[2], 'gender': data[3], 'interests': data[4],
-                'about_me': data[5], 'photo': data[6], 'username': data[7] }
+                'about_me': data[5], 'photo': data[6], 'location': data[7], 'username': data[8] }
     else:
         return None
 
 
 
-def save_registration_state(user_id, name=None, age=None, gender=None, interests=None, about_me=None):
+def save_registration_state(user_id, name=None, age=None, gender=None, interests=None, about_me=None, location=None):
     """Сохраняет промежуточное состояние регистрации в базу данных."""
     conn = sqlite3.connect(DATABASE_NAME)
     cursor = conn.cursor()
@@ -103,6 +106,8 @@ def save_registration_state(user_id, name=None, age=None, gender=None, interests
         cursor.execute("UPDATE registration_states SET interests = ? WHERE user_id = ?", (interests, user_id))
     if about_me is not None:
         cursor.execute("UPDATE registration_states SET about_me = ? WHERE user_id = ?", (about_me, user_id))
+    if location is not None:
+        cursor.execute("UPDATE registration_states SET location = ? WHERE user_id = ?", (location, user_id))
 
     conn.commit()
     conn.close()
@@ -112,11 +117,11 @@ def get_registration_state(user_id):
     """Получает промежуточное состояние регистрации из базы данных."""
     conn = sqlite3.connect(DATABASE_NAME)
     cursor = conn.cursor()
-    cursor.execute("SELECT name, age, gender, interests, about_me FROM registration_states WHERE user_id = ?", (user_id,))
+    cursor.execute("SELECT name, age, gender, interests, about_me, location FROM registration_states WHERE user_id = ?", (user_id,))
     data = cursor.fetchone()
     conn.close()
     if data:
-        return {'name': data[0], 'age': data[1], 'gender': data[2], 'interests': data[3], 'about_me': data[4]}
+        return {'name': data[0], 'age': data[1], 'gender': data[2], 'interests': data[3], 'about_me': data[4], 'location': data[5]}
     else:
         return {}
 
