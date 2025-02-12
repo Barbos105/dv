@@ -146,27 +146,24 @@ def like_liker_callback(call):
     try:
         user_id = call.from_user.id
         liker_id = int(call.data.split(':')[1])
-        print(liker_id, 'liker_id')
         bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
 
         remove_like(liker_id, user_id)
 
         liker_data = get_user_data(liker_id)
-        print(liker_data, 'liker_data')
         user_data = get_user_data(user_id)
-        print(user_data,'user_data')
-        print(user_data,'user_data')
         if liker_data:
             bot.register_next_step_handler(call.message, go_back_to_main_menu)
-            
+
             bot.send_animation(liker_id, open('resources/happy_gif.mp4', 'rb'))
             bot.send_animation(user_id, open('resources/happy_gif.mp4', 'rb'))
 
-            user_ping = f"@{user_data['username']}" if user_data.get('username') else "{ошибка получения лс}"
+            # user_ping = f"@{}" if user_data.get('username') else "{ошибка получения лс}"
+            user_ping = f"[{user_data['username']}](tg://user?id={user_data['user_id']})"
             bot.send_message(liker_id,f"🤩 Взаимная симпатия с {user_data['name']}!\n Начинай общаться {user_ping}")
-            liker_ping = f"@{liker_data['username']}" if liker_data.get('username') else "{ошибка получения лс}"
+            #liker_ping = f"@{liker_data['username']}" if liker_data.get('username') else "{ошибка получения лс}"
+            liker_ping = f"[{liker_data['username']}](tg://user?id={liker_data['user_id']})"
             bot.send_message(user_id,f"🤩 Взаимная симпатия с {liker_data['name']}!\n Начинай общаться {liker_ping}")
-
         show_next_liker(call.message, user_id)
     except Exception as e:
         print(f"Ошибка в like_liker_callback: {e}")
@@ -235,7 +232,6 @@ def edit_profile(message):
 @bot.message_handler(func=lambda message: "удалить аккаунт" in message.text.lower())
 def delete_profile(message):
     user_id = message.from_user.id
-    print(user_id, 1)
     existing_data = get_user_data(user_id)
     if not existing_data:
         bot.reply_to(message, "Пожалуйста, сначала зарегистрируйтесь 🙏")
@@ -369,6 +365,8 @@ def like_callback(call):
             bot.send_message(likee_id,f"🤩 Взаимная симпатия с {user_data['name']}!\n Начинай общаться {user_ping}")
             liker_ping = f"@{liker_data['username']}" if liker_data.get('username') else "{ошибка получения лс}"
             bot.send_message(user_id,f"🤩 Взаимная симпатия с {liker_data['name']}!\n Начинай общаться {liker_ping}")
+
+            bot.register_next_step_handler(call.message, go_back_to_main_menu)
 
     bot.answer_callback_query(call.id, "Лайк поставлен")
     show_user(call.message, user_id)
