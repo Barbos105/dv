@@ -172,7 +172,6 @@ def get_available_users(user_id, gender):
     for e in available_users:
         if abs(e['age'] - user_data['age']) <= 3:
             filtered_users.append(e)
-            print(e['name'], e['age'], user_data['age'])
     random.shuffle(filtered_users)
     return filtered_users
 

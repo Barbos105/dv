@@ -44,7 +44,7 @@ def gender_menu(searching: bool, age: int):
     return  markup
 
 
-def location_menu(searching: bool,):
+def location_menu():
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
     types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
     markup.add('🏫 Проспект', '🏢 Цандера')
@@ -145,7 +145,6 @@ def like_liker_callback(call):
     """Обрабатывает нажатие кнопки "Лайк" на профиле лайкнувшего."""
     try:
         user_id = call.from_user.id
-        print(type(user_id))
         liker_id = int(call.data.split(':')[1])
         print(liker_id, 'liker_id')
         bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
@@ -155,6 +154,7 @@ def like_liker_callback(call):
         liker_data = get_user_data(liker_id)
         print(liker_data, 'liker_data')
         user_data = get_user_data(user_id)
+        print(user_data,'user_data')
         print(user_data,'user_data')
         if liker_data:
             bot.register_next_step_handler(call.message, go_back_to_main_menu)
@@ -238,7 +238,8 @@ def delete_profile(message):
         return
     delete_user(user_id)
     main_buttons_menu()
-    markup = main_buttons_menu()
+    gif = open('resources/sad_gif.mp4', 'rb')
+    bot.send_animation(message.chat.id, gif)
     bot.send_message(message.chat.id, "☑️ Твой аккаунт успешно удалён 🗑", reply_markup=ReplyKeyboardRemove())
 
 
@@ -315,7 +316,6 @@ def show_user(message, user_id):
         bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, начните поиск заново")
         return
     users = user_search_data['users']
-    print(users)
     if not users:
         gender = user_search_data['gender']
         users = get_available_users(user_id, gender)
