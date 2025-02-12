@@ -39,7 +39,7 @@ def gender_menu(searching: bool, age: int):
 def location_menu(searching: bool,):
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
     types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
-    markup.add('проспект', 'цандера')
+    markup.add('🏫 Проспект', '🏢 Цандера')
     return  markup
 
 # --- Обработчики команд ---
@@ -50,12 +50,12 @@ def send_welcome(message):
     user_id = message.from_user.id
     existing_data = get_user_data(user_id)
     if existing_data:
-        bot.reply_to(message, "Вы уже зарегистрированы.")
+        bot.reply_to(message, "Твои данные найдены 🗂")
         markup = main_buttons_menu()
-        bot.send_message(message.chat.id, "Теперь вы можете начать поиск", reply_markup=markup)
+        bot.send_message(message.chat.id, "Теперь ты можете начать поиск 💫", reply_markup=markup)
     else:
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        btn_register = types.KeyboardButton("Регистрация")
+        btn_register = types.KeyboardButton("🚀 Регистрация 🚀")
         markup.add(btn_register)
         bot.reply_to(message, """
         🤗 Привет! Добро пожаловать в бота для знакомств школы 1518!
@@ -67,7 +67,7 @@ def send_welcome(message):
 @bot.message_handler(func=lambda message: "регистрация" in message.text.lower())
 def register_start(message):
     """Начинает процесс регистрации."""
-    bot.send_message(message.chat.id, "Пожалуйста, введите ваше имя:", reply_markup=ReplyKeyboardRemove())
+    bot.send_message(message.chat.id, "Как тебя зовут?", reply_markup=ReplyKeyboardRemove())
     bot.register_next_step_handler(message, process_name)
 
 
@@ -81,7 +81,7 @@ def search_command(message):
         return
 
     markup = gender_menu(searching=True, age=13)
-    bot.send_message(message.chat.id, "Кого вы ищете?", reply_markup=markup)
+    bot.send_message(message.chat.id, "Кого ты хочешь найти?", reply_markup=markup)
     bot.register_next_step_handler(message, process_search_gender)
 
 
@@ -98,14 +98,14 @@ def show_likers(message):
         }
         show_liker_profile(message, user_id)
     else:
-        bot.send_message(message.chat.id, "Пока что вами никто не заинтересовался.")
+        bot.send_message(message.chat.id, "Сейчас здесь пусто, подожди пока тобой кто-то заинтересуется...")
 
 
 def show_liker_profile(message, user_id):
     """Показывает профиль лайкнувшего пользователя с кнопками Лайк и Дизлайк."""
     user_search_data = bot.user_search_data.get(user_id)
     if not user_search_data or 'likers' not in user_search_data:
-        bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз.")
+        bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз")
         return
 
     likers = user_search_data['likers']
@@ -124,11 +124,8 @@ def show_liker_profile(message, user_id):
                     f"\n{liker_data['about_me']}")
             bot.send_photo(message.chat.id, photo=open(f'images/image{liker_data["user_id"]}.jpg', 'rb'),
                                           caption=text, reply_markup=markup, parse_mode='HTML')
-
         else:
-            bot.send_message(message.chat.id, "Данные пользователя недоступны.")
-    else:
-        bot.send_message(message.chat.id, "Больше нет пользователей, которые вас лайкнули.")
+            bot.send_message(message.chat.id, "⚠️ Данные пользователя недоступны.")
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('like_liker:'))
@@ -155,10 +152,6 @@ def like_liker_callback(call):
         bot.send_message(user_id,f"🤩 Взаимная симпатия с {liker_data['name']}!\n Начинай общаться {liker_ping}")
 
     show_next_liker(call.message, user_id)
-
-    # except Exception as e:
-    #     print(f"Ошибка в like_liker_callback: {e}")
-    #     bot.send_message(call.message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз.")
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('dislike_liker:'))
@@ -203,7 +196,7 @@ def edit_profile(message):
     if not existing_data:
         bot.reply_to(message, "Пожалуйста, сначала зарегистрируйтесь 🙏")
         return
-    bot.send_message(message.chat.id, "Ваше новое имя?", reply_markup=ReplyKeyboardRemove())
+    bot.send_message(message.chat.id, "Как теперь тебя стоит называть?", reply_markup=ReplyKeyboardRemove())
     bot.register_next_step_handler(message, process_name)
 
 # --- Остальные функции и обработчики ---
@@ -213,7 +206,6 @@ def go_back_to_main_menu(message):
     existing_data = get_user_data(user_id)
     if existing_data:
         markup = main_buttons_menu()
-        bot.send_message(message.chat.id, "Возвращаемся в главное меню", reply_markup=markup)
     else:
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         btn_register = types.KeyboardButton("Регистрация")
@@ -253,12 +245,12 @@ def process_search_gender(message):
             show_user(message, user_id)
         else:
             bot.send_message(message.chat.id,
-                             "💔 К сожалению, больше пользователей с такими параметрами не найдено. Возвращаемся в главное меню.")
+                             "💔 К сожалению, больше пользователей с такими параметрами не найдено")
             go_back_to_main_menu(message)
 
     except Exception as e:
         print(f"Ошибка в process_search_gender: {e}")
-        bot.reply_to(message, '💔 Произошла ошибка при поиске. Подождите пока в боте появятся люди этого пола')
+        bot.reply_to(message, '💔 Произошла ошибка при поиске. Прости, но пользователей подходящих под параметры указанные не найдено')
         go_back_to_main_menu(message)
 
 
@@ -266,7 +258,7 @@ def show_user(message, user_id):
     user_age = get_user_data(message.chat.id)['age']
     user_search_data = bot.user_search_data.get(user_id)
     if not user_search_data:
-        bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, начните поиск заново.")
+        bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, начните поиск заново")
         return
     users = user_search_data['users']
     print(users)
@@ -350,7 +342,7 @@ def dislike_callback(call):
         bot.user_search_data[user_id] = user_search_data
         show_user(call.message, user_id)
     else:
-        bot.send_message(call.message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, начните поиск заново.")
+        bot.send_message(call.message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, начните поиск заново")
 
 
 @bot.callback_query_handler(func=lambda call: call.data == "back_to_menu")
@@ -388,7 +380,7 @@ def process_name(message):
         if name is None:
             raise Exception("Name is empty")
         save_registration_state(user_id, name=name)
-        bot.send_message(message.chat.id, "Сколько вам лет?")
+        bot.send_message(message.chat.id, "Сколько тебе лет?")
         bot.register_next_step_handler(message, process_age)
     except Exception as e:
         print(f"Ошибка в process_name: {e}")
