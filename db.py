@@ -190,6 +190,15 @@ def check_like(likee_id):
     return arr
 
 
+def remove_like(liker_id, likee_id):
+    """Удаляет лайк из базы данных."""
+    conn = sqlite3.connect(DATABASE_NAME)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM likes WHERE liker_id = ? AND likee_id = ?", (liker_id, likee_id))
+    conn.commit()
+    conn.close()
+
+
 def check_match(user_id1, user_id2):
     """Проверяет, есть ли взаимный лайк между пользователями."""
     conn = sqlite3.connect(DATABASE_NAME)

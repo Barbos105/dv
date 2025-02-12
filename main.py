@@ -179,15 +179,6 @@ def dislike_liker_callback(call):
         bot.send_message(call.message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз.")
 
 
-def remove_like(liker_id, likee_id):
-    """Удаляет лайк из базы данных."""
-    conn = sqlite3.connect(DATABASE_NAME)
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM likes WHERE liker_id = ? AND likee_id = ?", (liker_id, likee_id))
-    conn.commit()
-    conn.close()
-
-
 def show_next_liker(message, user_id):
     """Переходит к следующему лайкнувшему пользователю."""
     user_search_data = bot.user_search_data.get(user_id)
@@ -272,19 +263,25 @@ def process_search_gender(message):
 
 
 def show_user(message, user_id):
+    user_age = get_user_data(message.chat.id)['age']
     user_search_data = bot.user_search_data.get(user_id)
     if not user_search_data:
         bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, начните поиск заново.")
         return
     users = user_search_data['users']
+    print(users)
     # random.shuffle(users)
+    correct_users = []
 
+    for i in users:
+        if abs(i['age'] - user_age) <= 3:
+            correct_users.append(i)
     if not users:
         gender = user_search_data['gender']
         users = get_available_users(user_id, gender)
         user_search_data['users'] = users
 
-    user = random.choice(users)
+    user = random.choice(correct_users)
     markup = types.InlineKeyboardMarkup()
     btn_like = types.InlineKeyboardButton("❤️", callback_data=f"like:{user['user_id']}")
     btn_dislike = types.InlineKeyboardButton("👎", callback_data=f"dislike:{user['user_id']}")
