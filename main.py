@@ -158,6 +158,10 @@ def like_liker_callback(call):
         print(user_data,'user_data')
         if liker_data:
             bot.register_next_step_handler(call.message, go_back_to_main_menu)
+            
+            bot.send_animation(liker_id, open('resources/happy_gif.mp4', 'rb'))
+            bot.send_animation(user_id, open('resources/happy_gif.mp4', 'rb'))
+
             user_ping = f"@{user_data['username']}" if user_data.get('username') else "{ошибка получения лс}"
             bot.send_message(liker_id,f"🤩 Взаимная симпатия с {user_data['name']}!\n Начинай общаться {user_ping}")
             liker_ping = f"@{liker_data['username']}" if liker_data.get('username') else "{ошибка получения лс}"
@@ -238,8 +242,7 @@ def delete_profile(message):
         return
     delete_user(user_id)
     main_buttons_menu()
-    gif = open('resources/sad_gif.mp4', 'rb')
-    bot.send_animation(message.chat.id, gif)
+    bot.send_animation(message.chat.id, open('resources/sad_gif.mp4', 'rb'))
     bot.send_message(message.chat.id, "☑️ Твой аккаунт успешно удалён 🗑", reply_markup=ReplyKeyboardRemove())
 
 
@@ -358,6 +361,10 @@ def like_callback(call):
             remove_like(likee_id, user_id)
             remove_like(user_id, likee_id)
             bot.register_next_step_handler(call.message, go_back_to_main_menu)
+
+            bot.send_animation(likee_id, open('resources/happy_gif.mp4', 'rb'))
+            bot.send_animation(user_id, open('resources/happy_gif.mp4', 'rb'))
+
             user_ping = f"@{user_data['username']}" if user_data.get('username') else "{ошибка получения лс}"
             bot.send_message(likee_id,f"🤩 Взаимная симпатия с {user_data['name']}!\n Начинай общаться {user_ping}")
             liker_ping = f"@{liker_data['username']}" if liker_data.get('username') else "{ошибка получения лс}"
@@ -506,7 +513,7 @@ def process_about_me(message):
         if about_me:
             save_registration_state(user_id, about_me=about_me)
 
-            markup = location_menu(searching=False)
+            markup = location_menu()
             bot.send_message(message.chat.id, "В каком корпусе 1518 ты учишься?", reply_markup=markup)
             bot.register_next_step_handler(message, process_location)
 
