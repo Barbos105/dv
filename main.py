@@ -14,11 +14,19 @@ bot = telebot.TeleBot(BOT_TOKEN, parse_mode='MARKDOWN')
 def main_buttons_menu():
     btn_search = types.KeyboardButton("🔍 Поиск 🔍")
     btn_likes = types.KeyboardButton("💘 Кто меня лайкнул 💘")
-    btn_edit_profile = types.KeyboardButton("👤 Изменить профиль 👤")
+    btn_settings_profile = types.KeyboardButton("Управление аккаунтом")
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    markup.add(btn_search, btn_likes, btn_edit_profile)
+    markup.add(btn_search, btn_likes, btn_settings_profile)
     return markup
 
+
+def settings_buttons_menu():
+    btn_edit_profile = types.KeyboardButton("👤 Изменить профиль 👤")
+    btn_delete_profile = types.KeyboardButton("Удалить аккаунт")
+    btn_settings_profile = types.KeyboardButton("Назад")
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    markup.add(btn_edit_profile, btn_delete_profile, btn_settings_profile)
+    return markup
 
 def gender_menu(searching: bool, age: int):
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
@@ -191,6 +199,18 @@ def show_next_liker(message, user_id):
     else:
         del bot.user_search_data[user_id]
 
+@bot.message_handler(func=lambda message: "управление аккаунтом" in message.text.lower())
+def setting_profile(message):
+    user_id = message.from_user.id
+    existing_data = get_user_data(user_id)
+    if not existing_data:
+        bot.reply_to(message, "Пожалуйста, сначала зарегистрируйтесь 🙏")
+        return
+    settings_buttons_menu()
+    markup = settings_buttons_menu()
+    bot.send_message(message.chat.id, "Что ты хочешь сделать?",
+                     reply_markup=markup)
+
 
 @bot.message_handler(func=lambda message: "изменить профиль" in message.text.lower())
 def edit_profile(message):
@@ -201,6 +221,34 @@ def edit_profile(message):
         return
     bot.send_message(message.chat.id, "Как теперь тебя стоит называть?", reply_markup=ReplyKeyboardRemove())
     bot.register_next_step_handler(message, process_name)
+
+
+@bot.message_handler(func=lambda message: "удалить аккаунт" in message.text.lower())
+def delete_profile(message):
+    user_id = message.from_user.id
+    print(user_id, 1)
+    existing_data = get_user_data(user_id)
+    if not existing_data:
+        bot.reply_to(message, "Пожалуйста, сначала зарегистрируйтесь 🙏")
+        return
+    delete_user(user_id)
+    main_buttons_menu()
+    markup = main_buttons_menu()
+    bot.send_message(message.chat.id, "Твой аккаунт удалён(", reply_markup=ReplyKeyboardRemove())
+
+
+@bot.message_handler(func=lambda message: "назад" in message.text.lower())
+def setting_exit_profile(message):
+    user_id = message.from_user.id
+    existing_data = get_user_data(user_id)
+    if not existing_data:
+        bot.reply_to(message, "Пожалуйста, сначала зарегистрируйтесь 🙏")
+        return
+    main_buttons_menu()
+    markup = main_buttons_menu()
+    bot.send_message(message.chat.id, " гоооооооол",
+                     reply_markup=markup)
+
 
 # --- Остальные функции и обработчики ---
 

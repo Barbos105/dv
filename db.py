@@ -89,6 +89,14 @@ def get_user_data(user_id):
         return None
 
 
+def delete_user(user_id):
+    """Получает данные пользователя из базы данных."""
+    conn = sqlite3.connect(DATABASE_NAME)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+
 
 def save_registration_state(user_id, name=None, age=None, gender=None, interests=None, about_me=None, location=None):
     """Сохраняет промежуточное состояние регистрации в базу данных."""
