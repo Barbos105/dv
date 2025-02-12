@@ -72,16 +72,19 @@ def send_welcome(message):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         btn_register = types.KeyboardButton("🚀 Регистрация 🚀")
         markup.add(btn_register)
-        bot.reply_to(message, """
-        🤗 Привет! Добро пожаловать в бота для знакомств школы 1518!
-        Здесь ты сможешь найти себе людей для общения, совместного время препровождения,
-        а может и нечто большее.. В любом случае желаю удачи! 🤗
-            """, reply_markup=markup)
+        bot.reply_to(message, "🤗 Привет! Добро пожаловать в бота для знакомств школы 1518! "
+                              "Здесь ты сможешь найти себе людей для общения, "
+                              "совместного время препровождения, а может и нечто большее.. "
+                              "В любом случае желаю удачи! 🤗", reply_markup=markup)
 
 
 @bot.message_handler(func=lambda message: "регистрация" in message.text.lower())
 def register_start(message):
     """Начинает процесс регистрации."""
+    bot.send_message(message.chat.id, "📄 Регистрируясь, Вы принимаете правила: <ссылка на правила>")
+    link = '<a href="https://core.telegram.org/bots/api#markdown-style">для возможности Вашего пинга</a>'
+    bot.send_message(message.chat.id, f"✔️ Так же обратите Ваше внимание: для корректной работы бота вы должны разрешить пересылку сообщений ({link})\n"
+                                      "(Настройки > Конфиденциальность > Пересылка сообщений > Все)", parse_mode="HTML", disable_web_page_preview=True)
     bot.send_message(message.chat.id, "Как тебя зовут?", reply_markup=ReplyKeyboardRemove())
     bot.register_next_step_handler(message, process_name)
 
@@ -161,7 +164,7 @@ def like_liker_callback(call):
             # user_ping = f"@{}" if user_data.get('username') else "{ошибка получения лс}"
             user_ping = f"[{user_data['username']}](tg://user?id={user_data['user_id']})"
             bot.send_message(liker_id,f"🤩 Взаимная симпатия с {user_data['name']}!\n Начинай общаться {user_ping}")
-            #liker_ping = f"@{liker_data['username']}" if liker_data.get('username') else "{ошибка получения лс}"
+            # liker_ping = f"@{liker_data['username']}" if liker_data.get('username') else "{ошибка получения лс}"
             liker_ping = f"[{liker_data['username']}](tg://user?id={liker_data['user_id']})"
             bot.send_message(user_id,f"🤩 Взаимная симпатия с {liker_data['name']}!\n Начинай общаться {liker_ping}")
         show_next_liker(call.message, user_id)
