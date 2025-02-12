@@ -1,5 +1,4 @@
 import random
-
 import telebot
 from telebot.types import ReplyKeyboardRemove
 from telebot import types
@@ -14,19 +13,20 @@ bot = telebot.TeleBot(BOT_TOKEN, parse_mode='MARKDOWN')
 def main_buttons_menu():
     btn_search = types.KeyboardButton("🔍 Поиск 🔍")
     btn_likes = types.KeyboardButton("💘 Кто меня лайкнул 💘")
-    btn_settings_profile = types.KeyboardButton("Управление аккаунтом")
+    btn_settings_profile = types.KeyboardButton("👤 Управление аккаунтом 👤")
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.add(btn_search, btn_likes, btn_settings_profile)
     return markup
 
 
 def settings_buttons_menu():
-    btn_edit_profile = types.KeyboardButton("👤 Изменить профиль 👤")
-    btn_delete_profile = types.KeyboardButton("Удалить аккаунт")
-    btn_settings_profile = types.KeyboardButton("Назад")
+    btn_edit_profile = types.KeyboardButton("✏️ Изменить профиль ✏️")
+    btn_delete_profile = types.KeyboardButton("❌ Удалить аккаунт ❌")
+    btn_settings_profile = types.KeyboardButton("🔙 Назад 🔙")
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.add(btn_edit_profile, btn_delete_profile, btn_settings_profile)
     return markup
+
 
 def gender_menu(searching: bool, age: int):
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
@@ -49,6 +49,13 @@ def location_menu(searching: bool,):
     types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
     markup.add('🏫 Проспект', '🏢 Цандера')
     return  markup
+
+
+def send_user_profile(header: str, data, message, markup):
+    text = f"{header}\n\n<b>{data['name']}</b><i>, {data['age']} лет, {data['location']}.</i> \nИнтересы: {data['interests']}\n{data['about_me']}"
+    sent_message = bot.send_photo(message.chat.id, photo=open(f'images/image{data['user_id']}.jpg', 'rb'),
+                   caption=text, reply_markup=markup, parse_mode='HTML')
+    return sent_message
 
 # --- Обработчики команд ---
 
@@ -128,10 +135,7 @@ def show_liker_profile(message, user_id):
             btn_like = types.InlineKeyboardButton("❤️ Лайк", callback_data=f"like_liker:{liker_id}")
             btn_dislike = types.InlineKeyboardButton("👎 Дизлайк", callback_data=f"dislike_liker:{liker_id}")
             markup.add(btn_like, btn_dislike)
-            text = (f"Вы понравились:\n\n<b>{liker_data['name']}</b><i>, {liker_data['age']} лет.</i> Интересы: {liker_data['interests']}."
-                    f"\n{liker_data['about_me']}")
-            bot.send_photo(message.chat.id, photo=open(f'images/image{liker_data["user_id"]}.jpg', 'rb'),
-                                          caption=text, reply_markup=markup, parse_mode='HTML')
+            send_user_profile("Твоя анкета понравилась:", liker_data, message, markup)
         else:
             bot.send_message(message.chat.id, "⚠️ Данные пользователя недоступны.")
 
@@ -199,6 +203,7 @@ def show_next_liker(message, user_id):
     else:
         del bot.user_search_data[user_id]
 
+
 @bot.message_handler(func=lambda message: "управление аккаунтом" in message.text.lower())
 def setting_profile(message):
     user_id = message.from_user.id
@@ -208,8 +213,8 @@ def setting_profile(message):
         return
     settings_buttons_menu()
     markup = settings_buttons_menu()
-    bot.send_message(message.chat.id, "Что ты хочешь сделать?",
-                     reply_markup=markup)
+    send_user_profile("Сейчас твоя анкета выглядит так:", existing_data, message, markup)
+    bot.send_message(message.chat.id, "Ну давай поуправляем", reply_markup=markup)
 
 
 @bot.message_handler(func=lambda message: "изменить профиль" in message.text.lower())
@@ -234,7 +239,7 @@ def delete_profile(message):
     delete_user(user_id)
     main_buttons_menu()
     markup = main_buttons_menu()
-    bot.send_message(message.chat.id, "Твой аккаунт удалён(", reply_markup=ReplyKeyboardRemove())
+    bot.send_message(message.chat.id, "☑️ Твой аккаунт успешно удалён 🗑", reply_markup=ReplyKeyboardRemove())
 
 
 @bot.message_handler(func=lambda message: "назад" in message.text.lower())
@@ -246,8 +251,7 @@ def setting_exit_profile(message):
         return
     main_buttons_menu()
     markup = main_buttons_menu()
-    bot.send_message(message.chat.id, " гоооооооол",
-                     reply_markup=markup)
+    bot.send_message(message.chat.id, "Возвращаемся назад ◀️", reply_markup=markup)
 
 
 # --- Остальные функции и обработчики ---
@@ -323,10 +327,7 @@ def show_user(message, user_id):
     btn_dislike = types.InlineKeyboardButton("👎", callback_data=f"dislike:{user['user_id']}")
     btn_back_to_menu = types.InlineKeyboardButton("Назад", callback_data="back_to_menu")
     markup.add(btn_like, btn_dislike, btn_back_to_menu)
-    text = f"Нашел вот кого:\n\n<b>{user['name']}</b><i>, {user['age']} лет, {user['location']}.</i> \nИнтересы: {user['interests']}\n{user['about_me']}"
-    sent_message = bot.send_photo(message.chat.id, photo=open(f'images/image{user["user_id"]}.jpg', 'rb'),
-                                  caption=text, reply_markup=markup, parse_mode='HTML')
-
+    sent_message = send_user_profile("Нашел вот кого:", user, message, markup)
     user_search_data['last_message_id'] = sent_message.message_id
     bot.user_search_data[user_id] = user_search_data
 
@@ -439,10 +440,10 @@ def process_age(message):
         if 10 <= age <= 18:
             save_registration_state(user_id, age=age)
             markup = gender_menu(searching=False, age=age)
-            bot.send_message(message.chat.id, "Кто вы?", reply_markup=markup)
+            bot.send_message(message.chat.id, "Кто ты?", reply_markup=markup)
             bot.register_next_step_handler(message, process_gender)
         else:
-            bot.reply_to(message, "К сожалению вы не можете пользоваться нашим ботом 😔 По нашим правилам пользоваться нашим ботом можно только от 10 до 18 лет")
+            bot.reply_to(message, "К сожалению Вы не можете пользоваться нашим ботом 😔 По нашим правилам пользоваться нашим ботом можно только от 10 до 18 лет")
             bot.register_next_step_handler(message, process_age)
             return
     except Exception as e:
@@ -506,7 +507,7 @@ def process_about_me(message):
             save_registration_state(user_id, about_me=about_me)
 
             markup = location_menu(searching=False)
-            bot.send_message(message.chat.id, "В каком корпусе 1518 Вы учитесь?", reply_markup=markup)
+            bot.send_message(message.chat.id, "В каком корпусе 1518 ты учишься?", reply_markup=markup)
             bot.register_next_step_handler(message, process_location)
 
         else:
@@ -570,10 +571,9 @@ def process_photo(message):
             save_user_data(user_id, name, age, gender, interests, about_me, downloaded_file, location, username)
             clear_registration_state(user_id)
             markup = main_buttons_menu()
-            text = f"Ваша анкета выглядит так:\n\n<b>{name}</b><i>, {age} лет, {location}.</i> \nИнтересы: {interests}\n{about_me}"
-            bot.send_photo(message.chat.id, photo=open(f'images/image{user_id}.jpg', 'rb'),
-                                          caption=text, reply_markup=markup, parse_mode='HTML')
-            bot.send_message(message.chat.id, "Спасибо за регистрацию! Теперь вы можете начать поиск",
+            send_user_profile("Твоя анкета выглядит так:", get_user_data(user_id), message, markup)
+
+            bot.send_message(message.chat.id, "Спасибо за регистрацию! Теперь ты можешь начать поиск",
                              reply_markup=markup)
         else:
             bot.register_next_step_handler(message, process_photo)
