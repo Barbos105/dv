@@ -177,6 +177,19 @@ def save_like(liker_id, likee_id):
         conn.close()
 
 
+def check_like(likee_id):
+    conn = sqlite3.connect(DATABASE_NAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM likes")
+    qwe = cursor.fetchall()
+    conn.close()
+    arr = []
+    for i in qwe:
+        if i[0] == likee_id:
+            arr.append(i[1])
+    return arr
+
+
 def check_match(user_id1, user_id2):
     """Проверяет, есть ли взаимный лайк между пользователями."""
     conn = sqlite3.connect(DATABASE_NAME)
