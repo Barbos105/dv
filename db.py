@@ -159,8 +159,14 @@ def get_available_users(user_id, gender):
         }
         for user in users
     ]
-    random.shuffle(available_users)
-    return available_users
+    user_data = get_user_data(user_id)  # Возраст фильтр
+    filtered_users = []
+    for e in available_users:
+        if abs(e['age'] - user_data['age']) <= 3:
+            filtered_users.append(e)
+            print(e['name'], e['age'], user_data['age'])
+    random.shuffle(filtered_users)
+    return filtered_users
 
 
 def save_like(liker_id, likee_id):
