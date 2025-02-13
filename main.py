@@ -11,6 +11,7 @@ if '\n' in BOT_TOKEN:
 
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode='MARKDOWN')
 
+# 52 ЭТО ВТОРОООООЙ! Привет из Питера!
 
 def main_buttons_menu():
     btn_search = types.KeyboardButton("🔍 Поиск 🔍")
