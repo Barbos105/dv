@@ -11,11 +11,7 @@ if '\n' in BOT_TOKEN:
 
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode='MARKDOWN')
 
-<<<<<<< Updated upstream
-# 52 ЭТО ВТОРОООООЙ! Привет из Питера!
 
-=======
->>>>>>> Stashed changes
 def main_buttons_menu():
     btn_search = types.KeyboardButton("🔍 Поиск 🔍")
     btn_likes = types.KeyboardButton("💘 Кто меня лайкнул 💘")
@@ -70,7 +66,8 @@ def send_welcome(message):
     """Приветственное сообщение и инструкция."""
     user_id = message.from_user.id
     existing_data = get_user_data(user_id)
-    if existing_data:
+    print(existing_data)
+    if existing_data and existing_data['status'] != 'banned':
         bot.reply_to(message, "Твои данные найдены 🗂")
         markup = main_buttons_menu()
         bot.send_message(message.chat.id, "Теперь ты можете начать поиск 💫", reply_markup=markup)
@@ -103,10 +100,10 @@ def search_command(message):
     if not existing_data:
         bot.reply_to(message, "Пожалуйста, сначала зарегистрируйтесь 🙏")
         return
-
-    markup = gender_menu(searching=True, age=existing_data['age'])
-    bot.send_message(message.chat.id, "Кого ты хочешь найти?", reply_markup=markup)
-    bot.register_next_step_handler(message, process_search_gender)
+    else:
+        markup = gender_menu(searching=True, age=existing_data['age'])
+        bot.send_message(message.chat.id, "Кого ты хочешь найти?", reply_markup=markup)
+        bot.register_next_step_handler(message, process_search_gender)
 
 
 @bot.message_handler(func=lambda message: "кто меня лайкнул" in message.text.lower())
@@ -114,7 +111,7 @@ def show_likers(message):
     """Показывает пользователей, которые лайкнули данного пользователя."""
     user_id = message.from_user.id
     likers = get_liked_by(user_id)
-
+    existing_data = get_user_data(user_id)
     if likers:
         bot.user_search_data[user_id] = {
             'likers': likers,
@@ -221,10 +218,11 @@ def setting_profile(message):
     if not existing_data:
         bot.reply_to(message, "Пожалуйста, сначала зарегистрируйтесь 🙏")
         return
-    settings_buttons_menu()
-    markup = settings_buttons_menu()
-    send_user_profile("Сейчас твоя анкета выглядит так:", existing_data, message, markup)
-    bot.send_message(message.chat.id, "Ну давай поуправляем", reply_markup=markup)
+    else:
+        settings_buttons_menu()
+        markup = settings_buttons_menu()
+        send_user_profile("Сейчас твоя анкета выглядит так:", existing_data, message, markup)
+        bot.send_message(message.chat.id, "Ну давай поуправляем", reply_markup=markup)
 
 
 @bot.message_handler(func=lambda message: "изменить профиль" in message.text.lower())
@@ -234,8 +232,9 @@ def edit_profile(message):
     if not existing_data:
         bot.reply_to(message, "Пожалуйста, сначала зарегистрируйтесь 🙏")
         return
-    bot.send_message(message.chat.id, "Как теперь тебя стоит называть?", reply_markup=ReplyKeyboardRemove())
-    bot.register_next_step_handler(message, process_name)
+    else:
+        bot.send_message(message.chat.id, "Как теперь тебя стоит называть?", reply_markup=ReplyKeyboardRemove())
+        bot.register_next_step_handler(message, process_name)
 
 
 @bot.message_handler(func=lambda message: "удалить аккаунт" in message.text.lower())
@@ -245,10 +244,11 @@ def delete_profile(message):
     if not existing_data:
         bot.reply_to(message, "Пожалуйста, сначала зарегистрируйтесь 🙏")
         return
-    delete_user(user_id)
-    main_buttons_menu()
-    bot.send_animation(message.chat.id, open('resources/sad_gif.mp4', 'rb'))
-    bot.send_message(message.chat.id, "☑️ Твой аккаунт успешно удалён 🗑", reply_markup=ReplyKeyboardRemove())
+    else:
+        delete_user(user_id)
+        main_buttons_menu()
+        bot.send_animation(message.chat.id, open('resources/sad_gif.mp4', 'rb'))
+        bot.send_message(message.chat.id, "☑️ Твой аккаунт успешно удалён 🗑", reply_markup=ReplyKeyboardRemove())
 
 
 @bot.message_handler(func=lambda message: "назад" in message.text.lower())
@@ -258,9 +258,10 @@ def setting_exit_profile(message):
     if not existing_data:
         bot.reply_to(message, "Пожалуйста, сначала зарегистрируйтесь 🙏")
         return
-    main_buttons_menu()
-    markup = main_buttons_menu()
-    bot.send_message(message.chat.id, "Возвращаемся назад ◀️", reply_markup=markup)
+    else:
+        main_buttons_menu()
+        markup = main_buttons_menu()
+        bot.send_message(message.chat.id, "Возвращаемся назад ◀️", reply_markup=markup)
 
 
 # --- Остальные функции и обработчики ---
@@ -436,7 +437,7 @@ def complaint_callback(call):
     existing_data = get_user_data(user_id)
     complaint_user_id = int(call.data.split(':')[1])
     data_user = get_user_data(complaint_user_id)
-    if existing_data and data_user['status'] == 'unbaned':
+    if existing_data:
         markup = types.InlineKeyboardMarkup()
         btn_ban = types.InlineKeyboardButton("Бан", callback_data=f"user_id_ban:{data_user['user_id']}")
         btn_skip = types.InlineKeyboardButton("Пощада", callback_data=f"user_id_not_ban:{data_user['user_id']}")
@@ -445,7 +446,7 @@ def complaint_callback(call):
         text = call.message.caption
         bot.send_photo(chat_id='@qweoqw', caption=text, photo=open(f'images/image{data_user["user_id"]}.jpg', 'rb'), reply_markup=markup)
         check_complaint(complaint_user_id)
-    elif 'unbaned' not in data_user:
+    elif 'unbanned' not in data_user:
         bot.send_message(call.message.chat.id, "Жалоба на эту анкету уже была отправлена")
 
     else:
@@ -465,10 +466,26 @@ def ban_callback(call):
     user_id = call.from_user.id
     existing_data = get_user_data(user_id)
     ban_user_id = int(call.data.split(':')[1])
-    print(ban_user_id)
+    existing_data_ban = get_user_data(ban_user_id)
     if existing_data:
         check_ban(ban_user_id)
-        bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
+        fw = open('ban.txt', 'w')
+        fr = open('ban.txt', 'r')
+        ban_data = fr.readlines()
+        
+        print(existing_data_ban['username'], file=fw)
+
+        # bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('user_id_not_ban:'))
+def ban_callback(call):
+    user_id = call.from_user.id
+    existing_data = get_user_data(user_id)
+    unban_user_id = int(call.data.split(':')[1])
+    if existing_data:
+        check_unban(unban_user_id)
+        # bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
 
 
 # --- Обработчики шагов регистрации ---

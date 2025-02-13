@@ -19,7 +19,7 @@ def create_table():
         about_me TEXT,
         photo BLOB,
         location TEXT,
-        status TEXT DEFAULT 'unbaned',
+        status TEXT DEFAULT 'unbanned',
         username TEXT  -- Новое поле для username
     )
     """)
