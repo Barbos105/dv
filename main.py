@@ -6,6 +6,8 @@ from db import *
 import os
 
 BOT_TOKEN = open('token.txt').readline()
+if '\n' in BOT_TOKEN:
+    BOT_TOKEN = BOT_TOKEN[:-1]
 
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode='MARKDOWN')
 
@@ -81,7 +83,7 @@ def send_welcome(message):
 @bot.message_handler(func=lambda message: "регистрация" in message.text.lower())
 def register_start(message):
     """Начинает процесс регистрации."""
-    bot.send_message(message.chat.id, "📄 Регистрируясь, Вы принимаете правила: <ссылка на правила>")
+    bot.send_message(message.chat.id, "📄 Регистрируясь, Вы принимаете правила: https://t.me/barboslyandiya/36")
     link = '<a href="https://core.telegram.org/bots/api#markdown-style">для возможности Вашего пинга</a>'
     bot.send_message(message.chat.id, f"✔️ Так же обратите Ваше внимание: для корректной работы бота вы должны разрешить пересылку сообщений ({link})\n"
                                       "(Настройки > Конфиденциальность > Пересылка сообщений > Все)", parse_mode="HTML", disable_web_page_preview=True)
@@ -123,7 +125,7 @@ def show_liker_profile(message, user_id):
     """Показывает профиль лайкнувшего пользователя с кнопками Лайк и Дизлайк."""
     user_search_data = bot.user_search_data.get(user_id)
     if not user_search_data or 'likers' not in user_search_data:
-        bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз")
+        bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз" ,reply_markup=main_menu_buttons())
         return
 
     likers = user_search_data['likers']
@@ -188,14 +190,14 @@ def dislike_liker_callback(call):
 
     except Exception as e:
         print(f"Ошибка в dislike_liker_callback: {e}")
-        bot.send_message(call.message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз.")
+        bot.send_message(call.message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз.",reply_markup=main_buttons_menu())
 
 
 def show_next_liker(message, user_id):
     """Переходит к следующему лайкнувшему пользователю."""
     user_search_data = bot.user_search_data.get(user_id)
     if not user_search_data or 'likers' not in user_search_data:
-        bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз.")
+        bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, попробуйте ещеё раз.", )
         return
 
     likers = user_search_data['likers']
@@ -303,19 +305,17 @@ def process_search_gender(message):
             show_user(message, user_id)
         else:
             bot.send_message(message.chat.id,
-                             "💔 К сожалению, больше пользователей с такими параметрами не найдено")
-            go_back_to_main_menu(message)
+                             "💔 К сожалению, больше пользователей с такими параметрами не найдено", reply_markup=main_buttons_menu())
 
     except Exception as e:
         print(f"Ошибка в process_search_gender: {e}")
-        bot.reply_to(message, '💔 Произошла ошибка при поиске. Прости, но пользователей подходящих под параметры указанные не найдено')
-        go_back_to_main_menu(message)
+        bot.reply_to(message, '💔 Произошла ошибка при поиске. Прости, но пользователей подходящих под параметры указанные не найдено', reply_markup=main_buttons_menu())
 
 
 def show_user(message, user_id):
     user_search_data = bot.user_search_data.get(user_id)
     if not user_search_data:
-        bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, начните поиск заново")
+        bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, начните поиск заново" , reply_markup=main_buttons_menu())
         return
     users = user_search_data['users']
     if not users:
@@ -395,7 +395,7 @@ def dislike_callback(call):
         bot.user_search_data[user_id] = user_search_data
         show_user(call.message, user_id)
     else:
-        bot.send_message(call.message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, начните поиск заново")
+        bot.send_message(call.message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, начните поиск заново", reply_markup=main_buttons_menu())
 
 
 @bot.callback_query_handler(func=lambda call: call.data == "back_to_menu")
