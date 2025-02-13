@@ -11,8 +11,11 @@ if '\n' in BOT_TOKEN:
 
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode='MARKDOWN')
 
+<<<<<<< Updated upstream
 # 52 ЭТО ВТОРОООООЙ! Привет из Питера!
 
+=======
+>>>>>>> Stashed changes
 def main_buttons_menu():
     btn_search = types.KeyboardButton("🔍 Поиск 🔍")
     btn_likes = types.KeyboardButton("💘 Кто меня лайкнул 💘")
@@ -56,7 +59,7 @@ def location_menu():
 
 def send_user_profile(header: str, data, message, markup):
     text = f"{header}\n\n<b>{data['name']}</b><i>, {data['age']} лет, {data['location']}.</i> \nИнтересы: {data['interests']}\n{data['about_me']}"
-    sent_message = bot.send_photo(message.chat.id, photo=open(f'images/image{data['user_id']}.jpg', 'rb'),
+    sent_message = bot.send_photo(message.chat.id, photo=open(f'images/image{data["user_id"]}.jpg', 'rb'),
                    caption=text, reply_markup=markup, parse_mode='HTML')
     return sent_message
 
@@ -325,11 +328,13 @@ def show_user(message, user_id):
         user_search_data['users'] = users
 
     user = random.choice(users)
+    print(user['user_id'])
     markup = types.InlineKeyboardMarkup()
     btn_like = types.InlineKeyboardButton("❤️", callback_data=f"like:{user['user_id']}")
     btn_dislike = types.InlineKeyboardButton("👎", callback_data=f"dislike:{user['user_id']}")
+    btn_complaint = types.InlineKeyboardButton("Жалоба", callback_data=f"complaint:{user['user_id']}")
     btn_back_to_menu = types.InlineKeyboardButton("Назад", callback_data="back_to_menu")
-    markup.add(btn_like, btn_dislike, btn_back_to_menu)
+    markup.add(btn_like, btn_dislike, btn_complaint, btn_back_to_menu)
     sent_message = send_user_profile("Нашел вот кого:", user, message, markup)
     user_search_data['last_message_id'] = sent_message.message_id
     bot.user_search_data[user_id] = user_search_data
@@ -423,6 +428,47 @@ def back_to_menu_callback(call):
         del bot.user_search_data[user_id]
 
     bot.answer_callback_query(call.id, "Возвращаемся...")
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('complaint:'))
+def complaint_callback(call):
+    user_id = call.from_user.id
+    existing_data = get_user_data(user_id)
+    complaint_user_id = int(call.data.split(':')[1])
+    data_user = get_user_data(complaint_user_id)
+    if existing_data and data_user['status'] == 'unbaned':
+        markup = types.InlineKeyboardMarkup()
+        btn_ban = types.InlineKeyboardButton("Бан", callback_data=f"user_id_ban:{data_user['user_id']}")
+        btn_skip = types.InlineKeyboardButton("Пощада", callback_data=f"user_id_not_ban:{data_user['user_id']}")
+        markup.add(btn_ban, btn_skip)
+        bot.send_message(call.message.chat.id, "Ваша жалоба отправлена барбосам")
+        text = call.message.caption
+        bot.send_photo(chat_id='@qweoqw', caption=text, photo=open(f'images/image{data_user["user_id"]}.jpg', 'rb'), reply_markup=markup)
+        check_complaint(complaint_user_id)
+    elif 'unbaned' not in data_user:
+        bot.send_message(call.message.chat.id, "Жалоба на эту анкету уже была отправлена")
+
+    else:
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        btn_register = types.KeyboardButton("🚀 Регистрация 🚀")
+        markup.add(btn_register)
+        bot.send_message(call.message.chat.id, "Пожалуйста, зарегистрируйтесь 🙏", reply_markup=markup)
+
+    if user_id in bot.user_search_data:
+        del bot.user_search_data[user_id]
+
+    bot.answer_callback_query(call.id, "Возвращаемся...")
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('user_id_ban:'))
+def ban_callback(call):
+    user_id = call.from_user.id
+    existing_data = get_user_data(user_id)
+    ban_user_id = int(call.data.split(':')[1])
+    print(ban_user_id)
+    if existing_data:
+        check_ban(ban_user_id)
+        bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
 
 
 # --- Обработчики шагов регистрации ---

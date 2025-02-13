@@ -19,6 +19,7 @@ def create_table():
         about_me TEXT,
         photo BLOB,
         location TEXT,
+        status TEXT DEFAULT 'unbaned',
         username TEXT  -- Новое поле для username
     )
     """)
@@ -79,12 +80,12 @@ def get_user_data(user_id):
     """Получает данные пользователя из базы данных."""
     conn = sqlite3.connect(DATABASE_NAME)
     cursor = conn.cursor()
-    cursor.execute("SELECT user_id, name, age, gender, interests, about_me, photo, location, username FROM users WHERE user_id = ?", (user_id,))
+    cursor.execute("SELECT user_id, name, age, gender, interests, about_me, photo, location, status, username FROM users WHERE user_id = ?", (user_id,))
     data = cursor.fetchone()
     conn.close()
     if data:
         return {'user_id': data[0], 'name': data[1], 'age': data[2], 'gender': data[3], 'interests': data[4],
-                'about_me': data[5], 'photo': data[6], 'location': data[7], 'username': data[8] }
+                'about_me': data[5], 'photo': data[6], 'location': data[7], 'status': data[8], 'username': data[9] }
     else:
         return None
 
@@ -246,3 +247,27 @@ def get_liked_by(user_id):
     liked_by = [row[0] for row in cursor.fetchall()]
     conn.close()
     return liked_by
+
+
+def check_complaint(user_id):
+    conn = sqlite3.connect(DATABASE_NAME)
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET status = 'consideration' WHERE user_id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+
+
+def check_ban(user_id):
+    conn = sqlite3.connect(DATABASE_NAME)
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET status = 'banned' WHERE user_id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+
+
+def check_unban(user_id):
+    conn = sqlite3.connect(DATABASE_NAME)
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET status = 'unbanned' WHERE user_id = ?", (user_id,))
+    conn.commit()
+    conn.close()
