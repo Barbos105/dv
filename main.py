@@ -65,7 +65,6 @@ def send_welcome(message):
     """Приветственное сообщение и инструкция."""
     user_id = message.from_user.id
     existing_data = get_user_data(user_id)
-    print(existing_data)
     if existing_data and existing_data['status'] != 'banned':
         bot.reply_to(message, "Твои данные найдены 🗂")
         markup = main_buttons_menu()
@@ -133,10 +132,8 @@ def show_liker_profile(message, user_id):
     if not user_search_data or 'likers' not in user_search_data:
         bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз", reply_markup=main_buttons_menu)
         return
-
     likers = user_search_data['likers']
     current_index = user_search_data.get('current_index', 0)
-
     if current_index < len(likers):
         liker_id = likers[current_index]
         liker_data = get_user_data(liker_id)
@@ -443,13 +440,10 @@ def complaint_callback(call):
         btn_ban = types.InlineKeyboardButton("Бан", callback_data=f"user_id_ban:{data_user['user_id']}:{data_user['username']}")
         btn_skip = types.InlineKeyboardButton("Пощада", callback_data=f"user_id_not_ban:{data_user['user_id']}:{data_user['username']}")
         markup.add(btn_ban, btn_skip)
-        bot.send_message(call.message.chat.id, "Ваша жалоба отправлена барбосам")
+        bot.send_message(call.message.chat.id, "Ваша жалоба отправлена барбосам", reply_markup=markup)
         text = call.message.caption
         bot.send_photo(chat_id='@qweoqw', caption=text, photo=open(f'images/image{data_user["user_id"]}.jpg', 'rb'), reply_markup=markup)
         check_complaint(complaint_user_id)
-    elif 'unbanned' not in data_user:
-        bot.send_message(call.message.chat.id, "Жалоба на эту анкету уже была отправлена")
-
     else:
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         btn_register = types.KeyboardButton("🚀 Регистрация 🚀")
