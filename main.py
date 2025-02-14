@@ -55,11 +55,10 @@ def location_menu():
 
 def send_user_profile(header: str, data, message, markup):
     text = f"{header}\n\n<b>{data['name']}</b><i>, {data['age']} лет, {data['location']}.</i> \nИнтересы: {data['interests']}\n{data['about_me']}"
-    sent_message = bot.send_photo(message.chat.id, photo=open(f'images/image{data["user_id"]}.jpg', 'rb'),
-                   caption=text, reply_markup=markup, parse_mode='HTML')
+    sent_message = bot.send_photo(message.chat.id, photo=open(f'images/image{data["user_id"]}.jpg', 'rb'), caption=text,
+                                  reply_markup=markup, parse_mode='HTML')
     return sent_message
 
-# --- Обработчики команд ---
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
@@ -88,8 +87,14 @@ def register_start(message):
     link = '<a href="https://core.telegram.org/bots/api#markdown-style">для возможности Вашего пинга</a>'
     bot.send_message(message.chat.id, f"✔️ Так же обратите Ваше внимание: для корректной работы бота вы должны разрешить пересылку сообщений ({link})\n"
                                       "(Настройки > Конфиденциальность > Пересылка сообщений > Все)", parse_mode="HTML", disable_web_page_preview=True)
-    bot.send_message(message.chat.id, "Как тебя зовут?", reply_markup=ReplyKeyboardRemove())
-    bot.register_next_step_handler(message, process_name)
+    fr = open('ban.txt', 'r')
+    ban_data = list(map(str.strip, fr.readlines()))
+    if str(message.chat.id) not in ban_data:
+        bot.send_message(message.chat.id, "Как тебя зовут?", reply_markup=ReplyKeyboardRemove())
+        bot.register_next_step_handler(message, process_name)
+    else:
+        ping = f"[choco_p1e](https://t.me/choco_p1e)"
+        bot.send_message(message.chat.id, f"Прости друг, но на тебя поступила жалоба и ты был забанен. Разбан: {ping}", reply_markup=ReplyKeyboardRemove())
 
 
 @bot.message_handler(func=lambda message: "поиск" in message.text.lower())
@@ -164,10 +169,8 @@ def like_liker_callback(call):
             bot.send_animation(liker_id, open('resources/happy_gif.mp4', 'rb'))
             bot.send_animation(user_id, open('resources/happy_gif.mp4', 'rb'))
 
-            # user_ping = f"@{}" if user_data.get('username') else "{ошибка получения лс}"
             user_ping = f"[{user_data['username']}](tg://user?id={user_data['user_id']})"
             bot.send_message(liker_id,f"🤩 Взаимная симпатия с {user_data['name']}!\n Начинай общаться {user_ping}")
-            # liker_ping = f"@{liker_data['username']}" if liker_data.get('username') else "{ошибка получения лс}"
             liker_ping = f"[{liker_data['username']}](tg://user?id={liker_data['user_id']})"
             bot.send_message(user_id,f"🤩 Взаимная симпатия с {liker_data['name']}!\n Начинай общаться {liker_ping}")
         show_next_liker(call.message, user_id)
@@ -297,7 +300,6 @@ def process_search_gender(message):
         else:
             available_users = get_available_users(user_id, 'МЖ')
             search_gender = 'МЖ'
-
 
         if available_users:
             bot.user_search_data[user_id] = {
@@ -439,8 +441,8 @@ def complaint_callback(call):
     data_user = get_user_data(complaint_user_id)
     if existing_data:
         markup = types.InlineKeyboardMarkup()
-        btn_ban = types.InlineKeyboardButton("Бан", callback_data=f"user_id_ban:{data_user['user_id']}")
-        btn_skip = types.InlineKeyboardButton("Пощада", callback_data=f"user_id_not_ban:{data_user['user_id']}")
+        btn_ban = types.InlineKeyboardButton("Бан", callback_data=f"user_id_ban:{data_user['user_id']}:{data_user['username']}")
+        btn_skip = types.InlineKeyboardButton("Пощада", callback_data=f"user_id_not_ban:{data_user['user_id']}:{data_user['username']}")
         markup.add(btn_ban, btn_skip)
         bot.send_message(call.message.chat.id, "Ваша жалоба отправлена барбосам")
         text = call.message.caption
@@ -463,29 +465,33 @@ def complaint_callback(call):
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('user_id_ban:'))
 def ban_callback(call):
-    user_id = call.from_user.id
-    existing_data = get_user_data(user_id)
     ban_user_id = int(call.data.split(':')[1])
-    existing_data_ban = get_user_data(ban_user_id)
-    if existing_data:
-        check_ban(ban_user_id)
-        fw = open('ban.txt', 'w')
-        fr = open('ban.txt', 'r')
-        ban_data = fr.readlines()
-        
-        print(existing_data_ban['username'], file=fw)
-
-        # bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
+    ban_username = call.data.split(':')[2]
+    check_ban(ban_user_id)
+    fr = open('./ban.txt', 'r')
+    ban_data = list(map(str.strip, fr.readlines()))
+    if ban_user_id not in ban_data:
+        ban_data.append(str(ban_user_id))
+    fw = open('./ban.txt', 'w')
+    print('\n'.join(ban_data), file=fw)
+    delete_user(ban_user_id)
+    user_ping = f"[{ban_username}](tg://user?id={ban_user_id})"
+    bot.reply_to(call.message, f'Вы забанили {user_ping} 😈')
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('user_id_not_ban:'))
 def ban_callback(call):
-    user_id = call.from_user.id
-    existing_data = get_user_data(user_id)
     unban_user_id = int(call.data.split(':')[1])
-    if existing_data:
-        check_unban(unban_user_id)
-        # bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
+    unban_username = call.data.split(':')[2]
+    check_unban(unban_user_id)
+    fr = open('./ban.txt', 'r')
+    ban_data = list(map(str.strip, fr.readlines()))
+    if str(unban_user_id) in ban_data:
+        ban_data.remove(str(unban_user_id))
+    fw = open('./ban.txt', 'w')
+    print('\n'.join(ban_data), file=fw)
+    user_ping = f"[{unban_username}](tg://user?id={unban_user_id})"
+    bot.reply_to(call.message, f'Вы пощадили {user_ping} 😇')
 
 
 # --- Обработчики шагов регистрации ---
