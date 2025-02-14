@@ -98,8 +98,16 @@ def delete_user(user_id):
     conn.commit()
     conn.close()
 
+def delete_likes(user_id):
+    conn = sqlite3.connect(DATABASE_NAME)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM likes WHERE liker_id = ? OR likee_id = ?", (user_id, user_id))
+    conn.commit()
+    conn.close()
 
-def save_registration_state(user_id, name=None, age=None, gender=None, interests=None, about_me=None, location=None):
+
+def save_registration_state(user_id: object, name: object = None, age: object = None, gender: object = None, interests: object = None, about_me: object = None,
+                            location: object = None) -> object:
     """Сохраняет промежуточное состояние регистрации в базу данных."""
     conn = sqlite3.connect(DATABASE_NAME)
     cursor = conn.cursor()
@@ -271,3 +279,5 @@ def check_unban(user_id):
     cursor.execute("UPDATE users SET status = 'unbanned' WHERE user_id = ?", (user_id,))
     conn.commit()
     conn.close()
+
+

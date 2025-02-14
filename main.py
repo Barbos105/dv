@@ -145,7 +145,7 @@ def show_liker_profile(message, user_id):
             markup.add(btn_like, btn_dislike)
             send_user_profile("Твоя анкета понравилась:", liker_data, message, markup)
         else:
-            bot.send_message(message.chat.id, "⚠️ Данные пользователя недоступны.")
+            bot.send_message(message.chat.id, "⚠️ Данные пользователя недоступны. Скорее всего он её удалил")
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('like_liker:'))
@@ -246,6 +246,7 @@ def delete_profile(message):
         return
     else:
         delete_user(user_id)
+        delete_likes(user_id)
         main_buttons_menu()
         bot.send_animation(message.chat.id, open('resources/sad_gif.mp4', 'rb'))
         bot.send_message(message.chat.id, "☑️ Твой аккаунт успешно удалён 🗑", reply_markup=ReplyKeyboardRemove())
@@ -664,3 +665,7 @@ if __name__ == '__main__':
 
     print("Бот запущен...")
     bot.infinity_polling()
+
+
+
+
