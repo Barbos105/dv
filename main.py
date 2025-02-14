@@ -83,7 +83,7 @@ def send_welcome(message):
 @bot.message_handler(func=lambda message: "регистрация" in message.text.lower())
 def register_start(message):
     """Начинает процесс регистрации."""
-    bot.send_message(message.chat.id, "📄 Регистрируясь, Вы принимаете правила: https://t.me/barboslyandiya/36")
+    bot.send_message(message.chat.id, "📄 Регистрируясь, Вы принимаете правила: https://t.me/barboslyandiya/41")
     link = '<a href="https://core.telegram.org/bots/api#markdown-style">для возможности Вашего пинга</a>'
     bot.send_message(message.chat.id, f"✔️ Так же обратите Ваше внимание: для корректной работы бота вы должны разрешить пересылку сообщений ({link})\n"
                                       "(Настройки > Конфиденциальность > Пересылка сообщений > Все)", parse_mode="HTML", disable_web_page_preview=True)
@@ -131,7 +131,7 @@ def show_liker_profile(message, user_id):
     """Показывает профиль лайкнувшего пользователя с кнопками Лайк и Дизлайк."""
     user_search_data = bot.user_search_data.get(user_id)
     if not user_search_data or 'likers' not in user_search_data:
-        bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз" ,reply_markup=main_menu_buttons())
+        bot.send_message(message.chat.id, "⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз", reply_markup=main_buttons_menu)
         return
 
     likers = user_search_data['likers']
@@ -331,7 +331,6 @@ def show_user(message, user_id):
         user_search_data['users'] = users
 
     user = random.choice(users)
-    print(user['user_id'])
     markup = types.InlineKeyboardMarkup()
     btn_like = types.InlineKeyboardButton("❤️", callback_data=f"like:{user['user_id']}")
     btn_dislike = types.InlineKeyboardButton("👎", callback_data=f"dislike:{user['user_id']}")
@@ -500,7 +499,7 @@ def process_name(message):
     try:
         user_id = message.from_user.id
         name = message.text
-        if name is None:
+        if name is None or len(name) > 100 or 'https:/' in name:
             raise Exception("Name is empty")
         save_registration_state(user_id, name=name)
         bot.send_message(message.chat.id, "Сколько тебе лет?")
@@ -560,7 +559,7 @@ def process_interests(message):
     try:
         user_id = message.from_user.id
         interests = message.text
-        if interests:
+        if interests and len(interests) < 1000 and 'https:/' not in interests:
             save_registration_state(user_id, interests=interests)
 
             bot.send_message(message.chat.id, "Напишите немного о себе:")
@@ -581,7 +580,7 @@ def process_about_me(message):
     try:
         user_id = message.from_user.id
         about_me = message.text
-        if about_me:
+        if about_me and len(about_me) < 1000 and 'https:/' not in about_me:
             save_registration_state(user_id, about_me=about_me)
 
             markup = location_menu()
