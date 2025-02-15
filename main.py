@@ -442,7 +442,7 @@ def complaint_callback(call):
         btn_skip = types.InlineKeyboardButton("Пощада", callback_data=f"user_id_not_ban:{data_user['user_id']}:{data_user['username']}")
         markup.add(btn_ban, btn_skip)
         bot.send_message(call.message.chat.id, "Ваша жалоба отправлена барбосам")
-        text = f'[{get_user_data(call.from_user.id)['username']}](tg://user?id={call.from_user.id}) наябидничал на:\n\n' + '\n'.join(str(call.message.caption).split('\n')[2:])
+        text = f'[{get_user_data(call.from_user.id)['username']}](tg://user?id={call.from_user.id}) наябидничал на [{data_user['username']}](tg://user?id={data_user['user_id']}):\n\n' + '\n'.join(str(call.message.caption).split('\n')[2:])
         bot.send_photo(chat_id='@qweoqw', caption=text, photo=open(f'images/image{data_user["user_id"]}.jpg', 'rb'), reply_markup=markup)
         check_complaint(complaint_user_id)
     else:
@@ -469,8 +469,9 @@ def ban_callback(call):
     fw = open('./ban.txt', 'w')
     print('\n'.join(ban_data), file=fw)
     delete_user(ban_user_id)
-    user_ping = f"[{ban_username}](tg://user?id={ban_user_id})"
-    bot.reply_to(call.message, f'Вы забанили {user_ping} 😈')
+    user_ban_ping = f"[{ban_username}](tg://user?id={ban_user_id})"
+    user_ping = f"[{get_user_data(call.from_user.id)['username']}](tg://user?id={call.from_user.id})"
+    bot.reply_to(call.message, f'{user_ping} забанил {user_ban_ping} 😈')
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('user_id_not_ban:'))
@@ -484,8 +485,9 @@ def ban_callback(call):
         ban_data.remove(str(unban_user_id))
     fw = open('./ban.txt', 'w')
     print('\n'.join(ban_data), file=fw)
-    user_ping = f"[{unban_username}](tg://user?id={unban_user_id})"
-    bot.reply_to(call.message, f'Вы пощадили {user_ping} 😇')
+    user_unban_ping = f"[{unban_username}](tg://user?id={unban_user_id})"
+    user_ping = f"[{get_user_data(call.from_user.id)['username']}](tg://user?id={call.from_user.id})"
+    bot.reply_to(call.message, f'{user_ping} пощадил {user_unban_ping} 😇')
 
 
 # --- Обработчики шагов регистрации ---
