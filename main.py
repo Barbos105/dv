@@ -441,8 +441,8 @@ def complaint_callback(call):
         btn_ban = types.InlineKeyboardButton("Бан", callback_data=f"user_id_ban:{data_user['user_id']}:{data_user['username']}")
         btn_skip = types.InlineKeyboardButton("Пощада", callback_data=f"user_id_not_ban:{data_user['user_id']}:{data_user['username']}")
         markup.add(btn_ban, btn_skip)
-        bot.send_message(call.message.chat.id, "Ваша жалоба отправлена барбосам", reply_markup=markup)
-        text = call.message.caption
+        bot.send_message(call.message.chat.id, "Ваша жалоба отправлена барбосам")
+        text = f'[{get_user_data(call.from_user.id)['username']}](tg://user?id={call.from_user.id}) наябидничал на:\n\n' + '\n'.join(str(call.message.caption).split('\n')[2:])
         bot.send_photo(chat_id='@qweoqw', caption=text, photo=open(f'images/image{data_user["user_id"]}.jpg', 'rb'), reply_markup=markup)
         check_complaint(complaint_user_id)
     else:

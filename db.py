@@ -192,9 +192,9 @@ def save_like(liker_id, likee_id):
     try:
         cursor.execute("INSERT INTO likes (liker_id, likee_id) VALUES (?, ?)", (liker_id, likee_id))
         conn.commit()
-        print(f"User {liker_id} liked user {likee_id}")
+        print(f"User @{get_user_data(liker_id)['username']} ({liker_id}) liked user @{get_user_data(likee_id)['username']} ({likee_id})")
     except sqlite3.IntegrityError:
-        print(f"User {liker_id} already liked user {likee_id}")
+        print(f"User @{get_user_data(liker_id)['username']} ({liker_id}) already liked user @{get_user_data(likee_id)['username']} ({likee_id})")
     finally:
         conn.close()
 
