@@ -460,35 +460,41 @@ def complaint_callback(call):
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('user_id_ban:'))
 def ban_callback(call):
-    ban_user_id = int(call.data.split(':')[1])
-    ban_username = call.data.split(':')[2]
-    check_ban(ban_user_id)
-    fr = open('./ban.txt', 'r')
-    ban_data = list(map(str.strip, fr.readlines()))
-    if ban_user_id not in ban_data:
-        ban_data.append(str(ban_user_id))
-    fw = open('./ban.txt', 'w')
-    print('\n'.join(ban_data), file=fw)
-    delete_user(ban_user_id)
-    user_ban_ping = f"[{ban_username}](tg://user?id={ban_user_id})"
-    user_ping = f"[{get_user_data(call.from_user.id)['username']}](tg://user?id={call.from_user.id})"
-    bot.reply_to(call.message, f'{user_ping} забанил {user_ban_ping} 😈')
+    if call.message.chat.id == -1002499315023:
+        ban_user_id = int(call.data.split(':')[1])
+        ban_username = call.data.split(':')[2]
+        check_ban(ban_user_id)
+        fr = open('./ban.txt', 'r')
+        ban_data = list(map(str.strip, fr.readlines()))
+        if ban_user_id not in ban_data:
+            ban_data.append(str(ban_user_id))
+        fw = open('./ban.txt', 'w')
+        print('\n'.join(ban_data), file=fw)
+        delete_user(ban_user_id)
+        user_ban_ping = f"[{ban_username}](tg://user?id={ban_user_id})"
+        user_ping = f"[{get_user_data(call.from_user.id)['username']}](tg://user?id={call.from_user.id})"
+        bot.reply_to(call.message, f'{user_ping} забанил {user_ban_ping} 😈')
+    else:
+        bot.send_message(call.message.chat.id, f'Поплачь, {get_user_data(call.from_user.id)["username"]}((((((')
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('user_id_not_ban:'))
 def ban_callback(call):
-    unban_user_id = int(call.data.split(':')[1])
-    unban_username = call.data.split(':')[2]
-    check_unban(unban_user_id)
-    fr = open('./ban.txt', 'r')
-    ban_data = list(map(str.strip, fr.readlines()))
-    if str(unban_user_id) in ban_data:
-        ban_data.remove(str(unban_user_id))
-    fw = open('./ban.txt', 'w')
-    print('\n'.join(ban_data), file=fw)
-    user_unban_ping = f"[{unban_username}](tg://user?id={unban_user_id})"
-    user_ping = f"[{get_user_data(call.from_user.id)['username']}](tg://user?id={call.from_user.id})"
-    bot.reply_to(call.message, f'{user_ping} пощадил {user_unban_ping} 😇')
+    if call.message.chat.id == -1002499315023:
+        unban_user_id = int(call.data.split(':')[1])
+        unban_username = call.data.split(':')[2]
+        check_unban(unban_user_id)
+        fr = open('./ban.txt', 'r')
+        ban_data = list(map(str.strip, fr.readlines()))
+        if str(unban_user_id) in ban_data:
+            ban_data.remove(str(unban_user_id))
+        fw = open('./ban.txt', 'w')
+        print('\n'.join(ban_data), file=fw)
+        user_unban_ping = f"[{unban_username}](tg://user?id={unban_user_id})"
+        user_ping = f"[{get_user_data(call.from_user.id)['username']}](tg://user?id={call.from_user.id})"
+        bot.reply_to(call.message, f'{user_ping} пощадил {user_unban_ping} 😇')
+    else:
+        bot.send_message(call.message.chat.id, f'Поплачь, {get_user_data(call.from_user.id)["username"]}((((((')
 
 
 # --- Обработчики шагов регистрации ---
