@@ -145,7 +145,8 @@ def show_liker_profile(message, user_id):
             markup.add(btn_like, btn_dislike)
             send_user_profile("Твоя анкета понравилась:", liker_data, message, markup)
         else:
-            bot.send_message(message.chat.id, "⚠️ Данные пользователя недоступны. Скорее всего он её удалил")
+            bot.send_message(message.chat.id, "⚠️ Данные анкеты недоступны. Скорее всего пользователь её удалил")
+            remove_like(liker_id, user_id)
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('like_liker:'))
