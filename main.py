@@ -53,11 +53,19 @@ def location_menu():
     return  markup
 
 
-def send_user_profile(header: str, data, message, markup):
-    text = f"{header}\n\n<b>{data['name']}</b><i>, {data['age']} лет, {data['location']}.</i> \nИнтересы: {data['interests']}\n{data['about_me']}"
-    sent_message = bot.send_photo(message.chat.id, photo=open(f'images/image{data["user_id"]}.jpg', 'rb'), caption=text,
-                                  reply_markup=markup, parse_mode='HTML')
-    return sent_message
+def send_user_profile(header: str, data, message, markup, id_liker):
+    if not id_liker:
+        text = f"{header}\n\n<b>{data['name']}</b><i>, {data['age']} лет, {data['location']}.</i> \nИнтересы: {data['interests']}\n{data['about_me']}"
+        sent_message = bot.send_photo(message.chat.id, photo=open(f'images/image{data["user_id"]}.jpg', 'rb'), caption=text,
+                                      reply_markup=markup, parse_mode='HTML')
+        return sent_message
+    else:
+
+        text = f"{header}\n\n<b>{data['name']}</b><i>, {data['age']} лет, {data['location']}.</i> \nИнтересы: {data['interests']}\n{data['about_me']}"
+        sent_message = bot.send_photo(id_liker, photo=open(f'images/image{data["user_id"]}.jpg', 'rb'),
+                                      caption=text,
+                                      reply_markup=markup, parse_mode='HTML')
+        return sent_message
 
 
 @bot.message_handler(commands=['start', 'help'])
@@ -143,7 +151,7 @@ def show_liker_profile(message, user_id):
             btn_like = types.InlineKeyboardButton("❤️ Лайк", callback_data=f"like_liker:{liker_id}")
             btn_dislike = types.InlineKeyboardButton("👎 Дизлайк", callback_data=f"dislike_liker:{liker_id}")
             markup.add(btn_like, btn_dislike)
-            send_user_profile("Твоя анкета понравилась:", liker_data, message, markup)
+            send_user_profile("Твоя анкета понравилась:", liker_data, message, markup, None)
         else:
             bot.send_message(message.chat.id, "⚠️ Данные анкеты недоступны. Скорее всего пользователь её удалил")
             remove_like(liker_id, user_id)
@@ -156,9 +164,7 @@ def like_liker_callback(call):
         user_id = call.from_user.id
         liker_id = int(call.data.split(':')[1])
         bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
-
         remove_like(liker_id, user_id)
-
         liker_data = get_user_data(liker_id)
         user_data = get_user_data(user_id)
         if liker_data:
@@ -166,11 +172,13 @@ def like_liker_callback(call):
 
             bot.send_animation(liker_id, open('resources/happy_gif.mp4', 'rb'))
             bot.send_animation(user_id, open('resources/happy_gif.mp4', 'rb'))
-
+            send_user_profile("Анкета лайкнушего", get_user_data(liker_id), call.message, None, None)
+            liker_ping = f"[{liker_data['username']}](tg://user?id={liker_data['user_id']})"
+            bot.send_message(user_id,
+                             f"🤩 Взаимная симпатия с {liker_data['name']}!\n Начинай общаться {liker_ping}")
+            send_user_profile("Анкета лайкнутого", get_user_data(user_id), call.message, None, liker_id)
             user_ping = f"[{user_data['username']}](tg://user?id={user_data['user_id']})"
             bot.send_message(liker_id,f"🤩 Взаимная симпатия с {user_data['name']}!\n Начинай общаться {user_ping}")
-            liker_ping = f"[{liker_data['username']}](tg://user?id={liker_data['user_id']})"
-            bot.send_message(user_id,f"🤩 Взаимная симпатия с {liker_data['name']}!\n Начинай общаться {liker_ping}")
         show_next_liker(call.message, user_id)
     except Exception as e:
         print(f"Ошибка в like_liker_callback: {e}")
@@ -222,7 +230,7 @@ def setting_profile(message):
     else:
         settings_buttons_menu()
         markup = settings_buttons_menu()
-        send_user_profile("Сейчас твоя анкета выглядит так:", existing_data, message, markup)
+        send_user_profile("Сейчас твоя анкета выглядит так:", existing_data, message, markup, None)
         bot.send_message(message.chat.id, "Ну давай поуправляем", reply_markup=markup)
 
 
@@ -336,7 +344,7 @@ def show_user(message, user_id):
     btn_complaint = types.InlineKeyboardButton("Жалоба", callback_data=f"complaint:{user['user_id']}")
     btn_back_to_menu = types.InlineKeyboardButton("Назад", callback_data="back_to_menu")
     markup.add(btn_like, btn_dislike, btn_complaint, btn_back_to_menu)
-    sent_message = send_user_profile("Нашел вот кого:", user, message, markup)
+    sent_message = send_user_profile("Нашел вот кого:", user, message, markup, None)
     user_search_data['last_message_id'] = sent_message.message_id
     bot.user_search_data[user_id] = user_search_data
 
@@ -370,7 +378,8 @@ def like_callback(call):
 
             bot.send_animation(likee_id, open('resources/happy_gif.mp4', 'rb'))
             bot.send_animation(user_id, open('resources/happy_gif.mp4', 'rb'))
-
+            send_user_profile("Анкета лайкнутого", get_user_data(user_id), call.message, None, likee_id)
+            send_user_profile("Анкета лайкнутого", get_user_data(likee_id), call.message, None, None)
             user_ping = f"@{user_data['username']}" if user_data.get('username') else "{ошибка получения лс}"
             bot.send_message(likee_id,f"🤩 Взаимная симпатия с {user_data['name']}!\n Начинай общаться {user_ping}")
             liker_ping = f"@{liker_data['username']}" if liker_data.get('username') else "{ошибка получения лс}"
@@ -652,7 +661,7 @@ def process_photo(message):
             save_user_data(user_id, name, age, gender, interests, about_me, downloaded_file, location, username)
             clear_registration_state(user_id)
             markup = main_buttons_menu()
-            send_user_profile("Твоя анкета выглядит так:", get_user_data(user_id), message, markup)
+            send_user_profile("Твоя анкета выглядит так:", get_user_data(user_id), message, markup, None)
 
             bot.send_message(message.chat.id, "Спасибо за регистрацию! Теперь ты можешь начать поиск",
                              reply_markup=markup)
